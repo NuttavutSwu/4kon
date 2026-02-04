@@ -27,7 +27,17 @@
 # 7.Process / Methods / Tools
 
 # 8.Requirement  อาจารย์วีรยุทธ
-
+แยก Catagory ได้
+ดูเฉพาะของใน Shopee/Lazada /Filter เลือกว่าโชว์แค่ Shopee เท่านั้น
+เรียงราคา เพื่ม/ลบ/แก้ไข
+Role Admin/User
+โทนสีแอป  ฟ้า OR เทาแดง ไม่ต้องมีหลายสี โทนเดียวกัน
+รองรับ User จำนวนมาก
+มี Promotion
+ใช้ได้บน PC/Mobile
+หน้า About US เกี่ยวกับบริษัทเรา
+Admin ให้เก็บ Log การกดชื้อสินค้าจากเว็ป
+ไม่ต้องมี Animation เยอะๆ 
 # 9.Retrospective
 
 # 10.Product Backlog
