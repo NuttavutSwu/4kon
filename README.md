@@ -44,13 +44,13 @@
 
 # 4.User story<br>
 ```
-User Story Login
+**User Story Login
 ในฐานะผู้ใช้งาน (User) ฉันต้องสามารถ login ด้วย gmail/username เเละ password เพื่อที่จะได้เข้าสู้ระบบได้
-User Story Register
+**User Story Register
 ในฐานะผู้ใช้งาน ฉันต้องการสมัครสมาชิกด้วยอีเมล เพื่อให้สามารถเข้าใช้งานระบบได้
-User Story Logout
+**User Story Logout
 ในฐานะผู้ใช้งาน ฉันต้องการออกจากระบบ เพื่อป้องกันผู้อื่นเข้าถึงบัญชีของฉัน
-User Story Forgot Password
+**User Story Forgot Password
 ในฐานะผู้ใช้งาน ฉันต้องการรีเซ็ตรหัสผ่านเมื่อจำไม่ได้ เพื่อกลับเข้าสู่ระบบได้อีกครั้ง
 User Story Add Product description
 ในฐานะผู้ใช้งาน ฉันต้องการเขียน description เพื่อที่ฉันจะสามารถย้อนกลับมาดูรายละเอียดสินค้า
