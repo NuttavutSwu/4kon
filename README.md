@@ -100,6 +100,7 @@ User --> ClickBuy
 Admin --> ManageProduct
 Admin --> ManageCategory
 Admin --> ViewLog
+```
 # 7.Process / Methods / Tools
 
 # 8.Requirement
