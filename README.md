@@ -101,25 +101,25 @@ Admin --> ManageProduct
 Admin --> ManageCategory
 Admin --> ViewLog
 ```
-# 7.Process / Methods / Tools
+# 7.Process / Methods / Tools<br>
 #Process and Methods
 ```
 ใช้กระบวนการพัฒนาซอฟต์แวร์แบบ Agile / Scrum
 แบ่งการทำงานออกเป็น Sprint
 มีการประชุมทีมเพื่อวางแผนและติดตามความคืบหน้าอย่างสม่ำเสมอ
-```
+
 #Tool
 GitHub สำหรับจัดการซอร์สโค้ดและติดตามงาน
 Visual Studio Code สำหรับพัฒนาโปรแกรม
 Figma สำหรับออกแบบ UI
 Web Browser สำหรับทดสอบระบบ
 ```
-# 8.Requirement
+# 8.Requirement<br>
   https://youtu.be/8w2v3BGQ4U4
   https://youtu.be/pAoNU3hhO08
 # 9.Retrospective<br>
 https://youtu.be/8w2v3BGQ4U4
-# 10.Product Backlog
+# 10.Product Backlog<br>
 ```
 1.ระบบ Login และ Role Management	สูง
 2.ระบบเพิ่ม/ลบ/แก้ไขสินค้า	สูง
@@ -130,7 +130,7 @@ https://youtu.be/8w2v3BGQ4U4
 7	ระบบบันทึก Log การกดซื้อ	สูง
 ```
 # 11.Sprint Backlog 
-
+```
 Sprint 1
 วิเคราะห์ความต้องการระบบ
 ออกแบบ UI และโครงสร้างฐานข้อมูล
@@ -145,4 +145,4 @@ Sprint 3
 พัฒนาระบบ Role Management และ Log
 ทดสอบระบบและปรับปรุง
 
-
+```
