@@ -70,8 +70,8 @@
 ```
 
 # 6.Use-case diagram
-```mermaid
 
+```mermaid
 flowchart LR
 
 User((User))
