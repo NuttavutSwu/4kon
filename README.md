@@ -26,9 +26,9 @@
 
 # 7.Process / Methods / Tools
 
-# 8.Requirement  อาจารย์วีรยุทธ <br>
-แยก Catagory ได้
-ดูเฉพาะของใน Shopee/Lazada /Filter เลือกว่าโชว์แค่ Shopee เท่านั้น
+# 8.Requirement  อาจารย์วีรยุทธ
+แยก Catagory ได้ <br>
+ดูเฉพาะของใน Shopee/Lazada /Filter เลือกว่าโชว์แค่ Shopee เท่านั้น <br>
 เรียงราคา เพื่ม/ลบ/แก้ไข
 Role Admin/User
 โทนสีแอป  ฟ้า OR เทาแดง ไม่ต้องมีหลายสี โทนเดียวกัน
