@@ -101,7 +101,7 @@ Admin --> ManageProduct
 Admin --> ManageCategory
 Admin --> ViewLog
 ```
-# 7.Process / Methods / Tools<br>
+# 7.Process / Methods / Tools
 #Process and Methods
 ```
 ใช้กระบวนการพัฒนาซอฟต์แวร์แบบ Agile / Scrum
@@ -114,12 +114,12 @@ Visual Studio Code สำหรับพัฒนาโปรแกรม
 Figma สำหรับออกแบบ UI
 Web Browser สำหรับทดสอบระบบ
 ```
-# 8.Requirement<br>
+# 8.Requirement
   https://youtu.be/8w2v3BGQ4U4
   https://youtu.be/pAoNU3hhO08
 # 9.Retrospective<br>
 https://youtu.be/8w2v3BGQ4U4
-# 10.Product Backlog<br>
+# 10.Product Backlog
 ```
 1.ระบบ Login และ Role Management	สูง
 2.ระบบเพิ่ม/ลบ/แก้ไขสินค้า	สูง
@@ -129,20 +129,20 @@ https://youtu.be/8w2v3BGQ4U4
 6	หน้า About Us	ต่ำ
 7	ระบบบันทึก Log การกดซื้อ	สูง
 ```
-# 11.Sprint Backlog <br>
-```
+# 11.Sprint Backlog 
+
 Sprint 1
 วิเคราะห์ความต้องการระบบ
 ออกแบบ UI และโครงสร้างฐานข้อมูล
-```
-```
+
+
 Sprint 2
 พัฒนาระบบจัดการสินค้า
 พัฒนาระบบหมวดหมู่และการเรียงราคา
-```
-```
+
+
 Sprint 3
 พัฒนาระบบ Role Management และ Log
 ทดสอบระบบและปรับปรุง
-```
+
 
