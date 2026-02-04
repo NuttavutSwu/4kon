@@ -167,8 +167,8 @@ Figma สำหรับออกแบบ UI
 Web Browser สำหรับทดสอบระบบ
 ```
 # 8.Requirement<br>
-  <p>https://youtu.be/8w2v3BGQ4U4</p>
-  <p>https://youtu.be/pAoNU3hhO08</p>
+  <p>https://youtu.be/8w2v3BGQ4U4 คลิปให้ requirement กลุ่มอื่น</p>
+  <p>https://youtu.be/pAoNU3hhO08 คลิปได้รับ requirement จากอาจารย์วีรยุทธ</p>
   
 # 9.Retrospective<br>
 https://youtu.be/8w2v3BGQ4U4
