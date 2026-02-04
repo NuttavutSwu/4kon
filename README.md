@@ -43,6 +43,7 @@
 ```
 
 # 4.User story<br>
+```
 User Story Login
 ในฐานะผู้ใช้งาน (User) ฉันต้องสามารถ login ด้วย gmail/username เเละ password เพื่อที่จะได้เข้าสู้ระบบได้
 User Story Register
@@ -77,6 +78,7 @@ User Story Manage Promotion
 ในฐานะผู้ดูแลระบบ ฉันต้องการจัดการข้อมูลโปรโมชั่น เพื่ออัปเดตโปรโมชันใหม่ได้
 User Story Dashboard
 ในฐานะผู้ดูแลระบบ ฉันต้องการดูประวัติการกดซื้อสินค้า เพื่อใช้วิเคราะห์พฤติกรรมผู้ใช้งาน
+```
 # 5.Functional Requirements and NON-Functional Requirements<br>
 ```
 #Functional Requirement
