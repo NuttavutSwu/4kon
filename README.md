@@ -17,7 +17,7 @@
 
 # 3.ขอบเขตของโครงงาน
  
-  # ขอบเขตด้านผู้ใช้งาน โดยสามารถ:
+  # ขอบเขตด้านผู้ใช้งาน โดยผู้ใช้งานทั่วไปสามารถ:
 ```
  1.ดูรายการสินค้าจาก Shopee และ Lazada
  2.แยกดูสินค้าเป็นหมวดหมู่ (Category)
@@ -42,18 +42,6 @@
   :โทรศัพท์มือถือ (Mobile)
 ```
 
-
-ดูรายการสินค้าจาก Shopee และ Lazada
-
-แยกดูสินค้าเป็นหมวดหมู่ (Category)
-
-กรองแหล่งที่มาของสินค้า เช่น แสดงเฉพาะ Shopee หรือ Lazada
-
-เรียงลำดับราคาสินค้า (จากน้อยไปมาก / มากไปน้อย)
-
-ดูสินค้าโปรโมชั่น (Promotion)
-
-เข้าดูหน้า About Us เพื่อดูข้อมูลเกี่ยวกับบริษัท/ทีมพัฒนา
 # 4.User story
 
 # 5.Functional Requirements and NON-Functional Requirements
@@ -69,6 +57,7 @@
 <p>8.ระบบต้องบันทึก Log การกดซื้อสินค้า Admin สามารถดูประวัติการคลิกซื้อจากเว็บไซต์ได้
 
 ```
+
 ```
 #Non-Functional Requirment
 1.ระบบต้องใช้โทนสีหลักเพียงโทนเดียวตลอดทั้งแอปพลิเคชัน เช่น โทนฟ้า หรือโทนเทา-แดง และต้องไม่ใช้หลายสีปนกันเพื่อคงความสม่ำเสมอของการออกแบบ
@@ -81,11 +70,41 @@
 ```
 
 # 6.Use-case diagram
+```mermaid
 
+flowchart LR
+
+User((User))
+Admin((Admin))
+
+View([View Products])
+Filter([Filter by Platform])
+Category([View by Category])
+Sort([Sort by Price])
+Promo([View Promotion])
+About([View About Us])
+ClickBuy([Click Buy Product])
+
+ManageProduct([Add/Edit/Delete Product])
+ManageCategory([Manage Category])
+ViewLog([View Purchase Logs])
+
+User --> View
+User --> Filter
+User --> Category
+User --> Sort
+User --> Promo
+User --> About
+User --> ClickBuy
+
+Admin --> ManageProduct
+Admin --> ManageCategory
+Admin --> ViewLog
 # 7.Process / Methods / Tools
 
-# 8.Requirement จาก อาจารย์วีรยุทธ
-
+# 8.Requirement
+  https://youtu.be/8w2v3BGQ4U4
+  https://youtu.be/pAoNU3hhO08
 # 9.Retrospective
 https://youtu.be/8w2v3BGQ4U4
 # 10.Product Backlog
