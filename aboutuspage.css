@@ -1,0 +1,170 @@
+/* style.css */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Prompt', sans-serif;
+    background: #e9eef2;
+    color: #222;
+}
+
+/* NAVBAR */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 40px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo img {
+    width: 55px;
+    height: 55px;
+    border-radius: 14px;
+    background: #b9d3e3;
+    padding: 8px;
+}
+
+.logo h1 {
+    font-family: 'Jacques Francois Shadow', serif;
+    font-size: 32px;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.nav-links {
+    display: flex;
+    gap: 30px;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: #222;
+    font-size: 16px;
+}
+
+.divider-vertical {
+    width: 1px;
+    height: 28px;
+    background: #999;
+}
+
+.signup {
+    padding: 10px 22px;
+    background: #c7dbe6;
+    border-radius: 25px;
+    text-decoration: none;
+    color: #222;
+}
+
+/* LINE UNDER NAV */
+.nav-line {
+    width: 60%;
+    height: 1px;
+    background: #999;
+    margin: 10px auto 40px;
+}
+
+/* CONTENT */
+.container {
+    max-width: 900px;
+    margin: auto;
+    text-align: center;
+    padding: 0 20px 60px;
+}
+
+.container h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    margin-bottom: 30px;
+}
+
+.container p {
+    margin-bottom: 22px;
+    font-size: 17px;
+    line-height: 1.8;
+}
+
+.link {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-left: 4px;
+    font-size: 16px;
+    text-decoration: underline;
+    cursor: pointer;
+    color: #222;
+}
+
+.btn-link:hover {
+    opacity: 0.7;
+}
+
+.btn-link:hover {
+    background: #dbe7ef;
+    border-color: #666;
+}
+
+.dots {
+    margin: 20px 0;
+    font-size: 22px;
+}
+
+.contact {
+    text-align: right;
+    font-size: 22px;
+    margin-top: 20px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .nav-right {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .nav-links {
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .divider-vertical {
+        display: none;
+    }
+
+    .nav-line {
+        width: 80%;
+    }
+
+    .container h2 {
+        font-size: 32px;
+    }
+
+    .contact {
+        text-align: center;
+    }
+}
