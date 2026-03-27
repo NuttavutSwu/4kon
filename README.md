@@ -212,6 +212,15 @@ Sprint 3
 ```
 https://www.figma.com/design/wgFBc7bKk6GCeVu5BbA4CB/4kon?node-id=0-1&p=f&t=hS07W6DfIaNagzZg-0
 ```
+![mainpage](figma/mainpage.png)
+![login](figma/login.png)
+![register](figma/register.png)
+![ForgotPassword](figma/ForgotPassword.png)
+![itemDesc](figma/itemDesc.png)
+![contactus](figma/contactus.png)
+![Aboutus](figma/Aboutus.png)
+![product](figma/product.png)
+
 # Process, Methods, and Tools (Phase 2)
 ```
 #1.Project Tracking
@@ -221,7 +230,6 @@ https://www.figma.com/design/wgFBc7bKk6GCeVu5BbA4CB/4kon?node-id=0-1&p=f&t=hS07W
  Done – งานที่เสร็จแล้ว
 สมาชิกในทีมจะทำการอัปเดตสถานะของงานทุกครั้งที่มีความคืบหน้า เพื่อให้ทุกคนสามารถติดตามภาพรวมของโปรเจกต์ได้แบบ real-time
 ```
-
 ```
 #2. Scrum & Meeting
 ทีมใช้แนวคิดของ Agile Scrum ในการพัฒนา โดยมีการประชุมอย่างสม่ำเสมอ:
@@ -238,7 +246,6 @@ https://www.figma.com/design/wgFBc7bKk6GCeVu5BbA4CB/4kon?node-id=0-1&p=f&t=hS07W
 #3. Version Control & Branching Strategy
   ทีมใช้ Git และ GitHub ในการจัดการ source code
 ```
-
 ```
 #4. Commit Message Convention
    feat: (Feature) ใช้เมื่อเพิ่มความสามารถใหม่ (เทียบกับที่คุณใช้ Adding หรือ Create)
@@ -263,9 +270,8 @@ https://www.figma.com/design/wgFBc7bKk6GCeVu5BbA4CB/4kon?node-id=0-1&p=f&t=hS07W
 ```
 #7. Improvements from Phase 1
 จาก Phase 1 ทีมได้มีการพัฒนาเพิ่มเติมในด้านกระบวนการทำงาน เช่น:
-
-เพิ่มการใช้เครื่องมือ Project Tracking เพื่อจัดการงานอย่างเป็นระบบ
-มีการกำหนดมาตรฐานในการตั้งชื่อ branch และ commit message
-เพิ่มความถี่ของการประชุม Scrum เพื่อแก้ปัญหาได้รวดเร็วขึ้น
-ใช้เครื่องมือสื่อสารที่ชัดเจน ทำให้การทำงานเป็นทีมมีประสิทธิภาพมากขึ้น
+ เพิ่มการใช้เครื่องมือ Project Tracking เพื่อจัดการงานอย่างเป็นระบบ
+ มีการกำหนดมาตรฐานในการตั้งชื่อ branch และ commit message
+ เพิ่มความถี่ของการประชุม Scrum เพื่อแก้ปัญหาได้รวดเร็วขึ้น
+ ใช้เครื่องมือสื่อสารที่ชัดเจน ทำให้การทำงานเป็นทีมมีประสิทธิภาพมากขึ้น
 ```
