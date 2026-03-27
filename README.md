@@ -275,3 +275,5 @@ https://www.figma.com/design/wgFBc7bKk6GCeVu5BbA4CB/4kon?node-id=0-1&p=f&t=hS07W
  เพิ่มความถี่ของการประชุม Scrum เพื่อแก้ปัญหาได้รวดเร็วขึ้น
  ใช้เครื่องมือสื่อสารที่ชัดเจน ทำให้การทำงานเป็นทีมมีประสิทธิภาพมากขึ้น
 ```
+
+RETROSPECTIVE phase 2 
