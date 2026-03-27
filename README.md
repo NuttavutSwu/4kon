@@ -212,4 +212,68 @@ Sprint 3
 ```
 https://www.figma.com/design/wgFBc7bKk6GCeVu5BbA4CB/4kon?node-id=0-1&p=f&t=hS07W6DfIaNagzZg-0
 ```
+![mainpage](figma/mainpage.png)
+![login](figma/login.png)
+![register](figma/register.png)
+![ForgotPassword](figma/ForgotPassword.png)
+![itemDesc](figma/itemDesc.png)
+![contactus](figma/contactus.png)
+![Aboutus](figma/Aboutus.png)
+![product](figma/product.png)
 
+# Process, Methods, and Tools (Phase 2)
+```
+#1.Project Tracking
+ทีมใช้ github ในการติดตามสถานะของงาน โดยแบ่งงานออกเป็น 3 สถานะหลัก ได้แก่:
+ To Do – งานที่ต้องทำ
+ In Progress – งานที่กำลังดำเนินการ
+ Done – งานที่เสร็จแล้ว
+สมาชิกในทีมจะทำการอัปเดตสถานะของงานทุกครั้งที่มีความคืบหน้า เพื่อให้ทุกคนสามารถติดตามภาพรวมของโปรเจกต์ได้แบบ real-time
+```
+```
+#2. Scrum & Meeting
+ทีมใช้แนวคิดของ Agile Scrum ในการพัฒนา โดยมีการประชุมอย่างสม่ำเสมอ:
+ Daily / Every 1 week Scrum
+  อัปเดตว่าแต่ละคนทำอะไรไปแล้ว
+  มีปัญหาอะไรหรือไม่
+  แผนงานถัดไปคืออะไร
+ Sprint Planning
+  วางแผนงานก่อนเริ่มแต่ละช่วง
+ Retrospective
+  สรุปสิ่งที่ทำได้ดี และสิ่งที่ควรปรับปรุง
+```
+```
+#3. Version Control & Branching Strategy
+  ทีมใช้ Git และ GitHub ในการจัดการ source code
+```
+```
+#4. Commit Message Convention
+   feat: (Feature) ใช้เมื่อเพิ่มความสามารถใหม่ (เทียบกับที่คุณใช้ Adding หรือ Create)
+    ตัวอย่าง: feat: add user login validation
+   fix: ใช้เมื่อแก้ Bug
+    ตัวอย่าง: fix: resolve navigation menu overlay issue
+   docs: ใช้เมื่อแก้ไขเอกสาร (README, comments)
+    ตัวอย่าง: docs: update installation guide
+   style: ใช้เมื่อปรับแต่งความสวยงามของ Code (format, missing semi-colons) ที่ไม่กระทบ Logic
+    refactor: ใช้เมื่อแก้ Code ให้ดีขึ้น แต่ทำงานเหมือนเดิม
+```
+```
+#5. Communication
+  ทีมใช้เครื่องมือสื่อสารเพื่อประสานงาน ได้แก่:
+  Discord – ใช้คุยงานและแชร์ข้อมูล
+```
+```
+#6. Development Tools
+  Visual Studio Code – เขียนโค้ด
+  Figma – ออกแบบ UI/UX
+```
+```
+#7. Improvements from Phase 1
+จาก Phase 1 ทีมได้มีการพัฒนาเพิ่มเติมในด้านกระบวนการทำงาน เช่น:
+ เพิ่มการใช้เครื่องมือ Project Tracking เพื่อจัดการงานอย่างเป็นระบบ
+ มีการกำหนดมาตรฐานในการตั้งชื่อ branch และ commit message
+ เพิ่มความถี่ของการประชุม Scrum เพื่อแก้ปัญหาได้รวดเร็วขึ้น
+ ใช้เครื่องมือสื่อสารที่ชัดเจน ทำให้การทำงานเป็นทีมมีประสิทธิภาพมากขึ้น
+```
+
+RETROSPECTIVE phase 2 
