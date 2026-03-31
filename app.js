@@ -48,6 +48,31 @@ app.post('/register', async (req, res) => {
     res.send("<script>alert('สมัครสมาชิกสำเร็จ!'); window.location.href='/login';</script>");
 });
 
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'html', 'Login.html'));
+});
+
+// Route สำหรับรับข้อมูล Login (POST)
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    // ค้นหาผู้ใช้ในตาราง users ที่มี username และ password ตรงกัน
+    const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username)
+        .eq('password', password)
+        .single(); // ดึงมาแค่แถวเดียว
+
+    if (error || !data) {
+        return res.send("<script>alert('Username หรือ Password ไม่ถูกต้อง'); window.history.back();</script>");
+    }
+
+    // ถ้าเจอข้อมูล (Login สำเร็จ)
+    console.log(`ผู้ใช้ ${username} เข้าสู่ระบบสำเร็จ!`);
+    res.send(`<script>alert('เข้าสู่ระบบสำเร็จแล้ว!'); window.location.href='/dashboard';</script>`);
+});
+
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}/register`);
 });
