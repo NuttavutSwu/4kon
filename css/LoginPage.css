@@ -20,7 +20,7 @@ body, html {
 /* ฝั่งซ้าย: จัดการรูปภาพ */
 .left-side {
     flex: 1; /* กินพื้นที่ครึ่งหนึ่ง */
-    background-image: url('./src/Furina1.png'); /* ใส่ลิงก์รูปภาพของคุณที่นี่ */
+    background-image: url('../src/Furina1.png'); /* ใส่ลิงก์รูปภาพของคุณที่นี่ */
     background-size: cover;
     background-position: center;
 }
