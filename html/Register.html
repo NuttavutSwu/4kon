@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title> <link rel="stylesheet" href="/css/LoginPage.css">
+</head>
+<body>
+    <div class="main-container">
+        <div class="left-side">
+            </div>
+        
+        <div class="right-side">
+            <form action="/register" method="post" class="form-input">
+                <h1 class="login-title">Register</h1>
+                
+                <input type="email" id="email" name="email" placeholder="Email" class="input-field" required>
+                <br>
+
+                <input type="text" id="username" name="username" placeholder="Username" class="input-field" required>
+                <br>
+
+                <input type="password" id="password" name="password" placeholder="Password" class="input-field" required>
+                <br>
+
+                <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm Password" class="input-field" required>
+                <br>
+
+                <button type="submit" class="login-btn">Register</button>
+
+                <div class="footer-links">
+                    <span>Already have an account? </span>
+                    <a href="/login" class="register-link" style="text-decoration: underline;">Login</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

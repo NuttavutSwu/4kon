@@ -1,0 +1,26 @@
+{
+  "name": "4kon",
+  "version": "1.0.0",
+  "description": "<p>67102010163 นายณัฐชนน มลาสินธ์</p>\r   <p>67102010508 นายเกียรติยศ ม่วงเปลี่ยน</p>\r   <p>67102010512 นายณัชพล โพธิ์ตาดทอง</p>\r   <p>67102010513 นายณัฐวุฒิ โตเชื้อ</p>",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NuttavutSwu/4kon.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/NuttavutSwu/4kon/issues"
+  },
+  "homepage": "https://github.com/NuttavutSwu/4kon#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.101.0",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1"
+  }
+}
