@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title + ' – StarWish' : 'StarWish' %></title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-logo" href="/">
+    <div class="nav-logo-icon">⭐</div>
+    <span class="nav-logo-text">StarWish</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="/wishlist">Wishlist</a>
+    <a class="nav-link" href="/about">About Us</a>
+    <% if (currentUser) { %>
+      <% if (currentUser.role === 'admin') { %>
+        <a class="nav-link" href="/admin">🛠 Admin</a>
+      <% } %>
+      <span class="nav-divider"></span>
+      <div class="nav-user-wrap">
+        <div class="nav-user-avatar" onclick="toggleMenu()">
+          <%= currentUser.username[0].toUpperCase() %>
+        </div>
+        <div class="user-menu" id="userMenu">
+          <div class="user-menu-item">👤 <%= currentUser.username %></div>
+          <a class="user-menu-item" href="/wishlist">📋 Wishlist ของฉัน</a>
+          <% if (currentUser.role === 'admin') { %>
+            <a class="user-menu-item" href="/admin">🛠 Admin Panel</a>
+          <% } %>
+          <a class="user-menu-item danger" href="/auth/logout">🚪 ออกจากระบบ</a>
+        </div>
+      </div>
+    <% } else { %>
+      <span class="nav-divider"></span>
+      <a class="nav-link" href="/login">Login</a>
+      <a class="nav-btn" href="/register">Sign Up</a>
+    <% } %>
+  </div>
+</nav>

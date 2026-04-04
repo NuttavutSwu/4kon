@@ -11,66 +11,90 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/css', express.static(path.join(__dirname, 'css')));
 
-// Route สำหรับหน้า Register (GET)
-app.get('/register', (req, res) => {
-    res.sendFile(path.join(__dirname, 'html', 'Register.html'));
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// ใช้ตัวนี้ตัวเดียวพอ
+app.use(express.static('public'));
+
+app.use((req, res, next) => {
+    res.locals.currentUser = null;
+    next();
+});
+app.use((req, res, next) => {
+    res.locals.currentUser = null;
+    next();
 });
 
-// Route สำหรับรับข้อมูลและบันทึกลง Database (POST)
+// Route สำหรับหน้า Register (GET)
+const bcrypt = require('bcrypt');
+
 app.post('/register', async (req, res) => {
     const { email, username, password, confirm_password } = req.body;
 
-    // 1. เช็คว่ารหัสผ่านตรงกันไหม
     if (password !== confirm_password) {
         return res.send("<script>alert('รหัสผ่านไม่ตรงกัน!'); window.history.back();</script>");
     }
 
-    // 2. ส่งข้อมูลไปที่ Supabase ตาราง users
+    // 🔥 hash password ตรงนี้
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const { data, error } = await supabase
         .from('users')
         .insert([
             { 
                 email: email, 
                 username: username, 
-                password: password, 
-                role_id: 2 // ค่า Default สำหรับ Member
+                password: hashedPassword, 
+                role_id: 2
             }
         ]);
 
     if (error) {
-        console.error("Database Error:", error.message);
-        return res.status(500).send("เกิดข้อผิดพลาด: " + error.message);
+        console.error(error);
+        return res.send("Error");
     }
 
-    // 3. ถ้าสำเร็จ ให้เด้งไปหน้า Login
-    res.send("<script>alert('สมัครสมาชิกสำเร็จ!'); window.location.href='/login';</script>");
+    res.send("<script>alert('สมัครสำเร็จ'); window.location='/login';</script>");
 });
 
+
 app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'html', 'Login.html'));
+    res.render('login', { title: 'Login' });
 });
+
 
 // Route สำหรับรับข้อมูล Login (POST)
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
-    // ค้นหาผู้ใช้ในตาราง users ที่มี username และ password ตรงกัน
-    const { data, error } = await supabase
+    // 🔍 หา user ก่อน (ไม่ต้องเช็ค password)
+    const { data: user, error } = await supabase
         .from('users')
         .select('*')
         .eq('username', username)
-        .eq('password', password)
-        .single(); // ดึงมาแค่แถวเดียว
+        .single();
 
-    if (error || !data) {
-        return res.send("<script>alert('Username หรือ Password ไม่ถูกต้อง'); window.history.back();</script>");
+    if (error || !user) {
+        return res.send("<script>alert('ไม่พบผู้ใช้'); window.history.back();</script>");
     }
 
-    // ถ้าเจอข้อมูล (Login สำเร็จ)
-    console.log(`ผู้ใช้ ${username} เข้าสู่ระบบสำเร็จ!`);
-    res.send(`<script>alert('เข้าสู่ระบบสำเร็จแล้ว!'); window.location.href='/dashboard';</script>`);
+    // 🔥 เทียบ password
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+        return res.send("<script>alert('รหัสผ่านผิด'); window.history.back();</script>");
+    }
+
+    // ✅ login สำเร็จ
+    res.send("<script>alert('เข้าสู่ระบบสำเร็จ'); window.location='/dashboard';</script>");
+});
+app.get('/about', (req, res) => {
+    res.render('about', { 
+        title: 'About Us',
+        currentUser: null // 🔥 ใส่ตัวนี้
+    });
 });
 
 app.listen(port, () => {
