@@ -34,3 +34,20 @@ router.post('/register', (req, res) => {
   req.session.user = { id: newUser.id, username: newUser.username, email: newUser.email, role: newUser.role };
   res.redirect('/wishlist');
 });
+
+// POST Login
+router.post('/login', (req, res) => {
+  const { username, password, redirect } = req.body;
+  const users = db.read('users');
+  const user = users.find(u => u.username === username);
+
+  if (!user || !bcrypt.compareSync(password, user.password)) {
+    return res.render('login', {
+      error: 'Username หรือ Password ไม่ถูกต้อง',
+      redirect: redirect || '/wishlist'
+    });
+  }
+
+  req.session.user = { id: user.id, username: user.username, email: user.email, role: user.role };
+  res.redirect(redirect || '/wishlist');
+});
