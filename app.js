@@ -96,6 +96,19 @@ app.get('/about', (req, res) => {
         currentUser: null // 🔥 ใส่ตัวนี้
     });
 });
+app.get('/register', (req, res) => {
+    res.render('register', { 
+        title: 'Register',
+        currentUser: null // 🔥 ใส่ตัวนี้
+    });
+});
+app.get('/login', (req, res) => {
+    res.render('login', { 
+        title: 'Login',
+        currentUser: null,
+        redirect: req.query.redirect || '/'   // ✅ ต้องมีบรรทัดนี้
+    });
+});
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}/register`);

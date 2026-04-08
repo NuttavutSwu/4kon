@@ -20,14 +20,11 @@ build/
 .DS_Store
 Thumbs.db
 
-# Environment
-.env
-.env.local
-.env.*.local
-
 # Logs
 logs/
 *.log
 
 # HTML
 *.html.bak
+
+node_modules/
