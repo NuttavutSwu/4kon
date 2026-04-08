@@ -1,0 +1,46 @@
+<%- include('partials/header', { title: 'หน้าแรก' }) %>
+
+<div class="hero-section">
+  <div class="hero-banner">
+    <div class="hero-text">
+      <h1>จัดการ Wishlist<br>ได้ง่ายขึ้น</h1>
+      <p>บันทึกสินค้าจาก Shopee &amp; Lazada วางแผนการซื้ออย่างชาญฉลาด ไม่พลาดทุกโปรโมชั่น</p>
+      <div class="hero-cta">
+        <a class="btn btn-white" href="/wishlist">🛒 ดู Wishlist</a>
+        <% if (!currentUser) { %>
+          <a class="btn btn-outline-white" href="/register">สมัครสมาชิกฟรี</a>
+        <% } %>
+      </div>
+    </div>
+    <div class="hero-star">⭐</div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon">🛒</div>
+      <div>
+        <div class="stat-val"><%= stats.total %></div>
+        <div class="stat-label">สินค้าใน Wishlist</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💰</div>
+      <div>
+        <div class="stat-val">฿<%= stats.totalValue.toLocaleString() %></div>
+        <div class="stat-label">มูลค่ารวม</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🏷️</div>
+      <div>
+        <div class="stat-val"><%= stats.promoCount %></div>
+        <div class="stat-label">สินค้าโปรโมชั่น</div>
+      </div>
+    </div>
+  </div>
+
+
+  </div>
+</div>
+
+<%- include('partials/footer') %>
