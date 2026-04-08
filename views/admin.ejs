@@ -1,0 +1,118 @@
+<%- include('partials/header', { title: 'Admin Dashboard' }) %>
+
+<div class="admin-page">
+  <h1 class="admin-title">🛠 Admin Dashboard</h1>
+
+  <!-- Stats -->
+  <div class="admin-grid">
+    <div class="admin-stat">
+      <div class="val"><%= stats.total %></div>
+      <div class="lbl">สินค้าทั้งหมด</div>
+    </div>
+    <div class="admin-stat">
+      <div class="val">฿<%= stats.totalValue.toLocaleString() %></div>
+      <div class="lbl">มูลค่ารวม</div>
+    </div>
+    <div class="admin-stat">
+      <div class="val"><%= stats.shopeeCount %></div>
+      <div class="lbl">สินค้า Shopee</div>
+    </div>
+    <div class="admin-stat">
+      <div class="val"><%= stats.lazadaCount %></div>
+      <div class="lbl">สินค้า Lazada</div>
+    </div>
+    <div class="admin-stat">
+      <div class="val"><%= stats.promoCount %></div>
+      <div class="lbl">สินค้าโปรโมชั่น</div>
+    </div>
+    <div class="admin-stat">
+      <div class="val"><%= stats.userCount %></div>
+      <div class="lbl">ผู้ใช้งานทั้งหมด</div>
+    </div>
+  </div>
+
+  <!-- Products Table -->
+  <div class="admin-table-wrap">
+    <div class="admin-table-head">
+      <h3>จัดการสินค้า</h3>
+      <a class="btn-add-wish" href="/products/add">＋ เพิ่มสินค้า</a>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>ชื่อสินค้า</th>
+            <th>ราคา</th>
+            <th>หมวดหมู่</th>
+            <th>แพลตฟอร์ม</th>
+            <th>โปรโมชั่น</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (products.length === 0) { %>
+            <tr><td colspan="6" style="text-align:center;color:var(--text-soft);padding:2rem">ยังไม่มีสินค้า</td></tr>
+          <% } %>
+          <% products.forEach(p => { %>
+            <tr>
+              <td><a href="/product/<%= p.id %>" style="color:var(--sky-deep);font-weight:600;text-decoration:none"><%= p.name %></a></td>
+              <td>฿<%= Number(p.price).toLocaleString() %></td>
+              <td><%= p.category || '-' %></td>
+              <td><span class="tbl-badge <%= p.platform %>"><%= p.platform || 'other' %></span></td>
+              <td><%= p.isPromo ? '🏷️ ใช่' : '-' %></td>
+              <td style="display:flex;gap:.4rem;align-items:center">
+                <a class="tbl-action edit" href="/products/edit/<%= p.id %>" title="แก้ไข">✏️</a>
+                <form method="POST" action="/products/delete/<%= p.id %>" style="display:inline" onsubmit="return confirm('ลบสินค้านี้?')">
+                  <button type="submit" class="tbl-action" title="ลบ">🗑️</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Purchase Log -->
+  <div class="admin-table-wrap">
+    <div class="admin-table-head"><h3>📋 Log การกดซื้อ</h3></div>
+    <% if (logs.length === 0) { %>
+      <div class="log-item" style="color:var(--text-soft)">ยังไม่มี Log</div>
+    <% } %>
+    <% logs.forEach(l => { %>
+      <div class="log-item">
+        <div class="log-dot"></div>
+        <div style="flex:1">
+          <strong><%= l.productName %></strong>
+          <span style="color:var(--text-soft);font-size:.82rem"> – ผู้ใช้ <%= l.user %></span>
+        </div>
+        <div class="log-time"><%= new Date(l.time).toLocaleString('th-TH') %></div>
+      </div>
+    <% }) %>
+  </div>
+
+  <!-- Category Management -->
+  <div class="admin-table-wrap">
+    <div class="admin-table-head">
+      <h3>จัดการหมวดหมู่</h3>
+    </div>
+    <div style="padding:1.2rem 1.5rem">
+      <form method="POST" action="/categories/add" style="display:flex;gap:.8rem;margin-bottom:1.2rem;flex-wrap:wrap">
+        <input type="text" class="form-input" name="name" placeholder="ชื่อหมวดหมู่ใหม่" style="max-width:260px">
+        <button type="submit" class="btn-add-wish">＋ เพิ่มหมวดหมู่</button>
+      </form>
+      <div style="display:flex;flex-wrap:wrap;gap:.6rem">
+        <% categories.forEach(c => { %>
+          <span class="cat-tag">
+            <%= c.name %>
+            <form method="POST" action="/categories/delete/<%= c.id %>" style="display:inline" onsubmit="return confirm('ลบหมวดหมู่นี้?')">
+              <button type="submit" class="cat-tag-del">✕</button>
+            </form>
+          </span>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+
+  
+<%- include('partials/footer') %>
