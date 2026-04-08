@@ -113,6 +113,39 @@
       </div>
     </div>
   </div>
+  
+  <!-- Users Table -->
+  <div class="admin-table-wrap">
+    <div class="admin-table-head"><h3>👥 จัดการผู้ใช้งาน</h3></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr><th>Username</th><th>Email</th><th>Role</th><th>สมัครเมื่อ</th><th>จัดการ</th></tr>
+        </thead>
+        <tbody>
+          <% users.forEach(u => { %>
+            <tr>
+              <td><strong><%= u.username %></strong></td>
+              <td><%= u.email %></td>
+              <td><span class="tbl-badge <%= u.role === 'admin' ? 'lazada' : 'shopee' %>"><%= u.role %></span></td>
+              <td style="font-size:.82rem;color:var(--text-soft)"><%= new Date(u.createdAt).toLocaleDateString('th-TH') %></td>
+              <td>
+                <% if (u.id !== currentUser.id) { %>
+                  <form method="POST" action="/admin/users/delete/<%= u.id %>" style="display:inline" onsubmit="return confirm('ลบผู้ใช้นี้?')">
+                    <button type="submit" class="tbl-action">🗑️</button>
+                  </form>
+                <% } else { %>
+                  <span style="color:var(--text-soft);font-size:.82rem">(คุณ)</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 
   
 <%- include('partials/footer') %>
