@@ -1,0 +1,10 @@
+<%- include('partials/header', { title: 'เกิดข้อผิดพลาด' }) %>
+
+<div style="max-width:500px;margin:6rem auto;text-align:center;padding:2rem">
+  <div style="font-size:4rem;margin-bottom:1rem">😢</div>
+  <h1 style="font-family:'Playfair Display',serif;font-size:2rem;margin-bottom:1rem">เกิดข้อผิดพลาด</h1>
+  <p style="color:var(--text-soft);margin-bottom:2rem"><%= message || 'มีบางอย่างผิดพลาด กรุณาลองใหม่อีกครั้ง' %></p>
+  <a href="/" class="btn btn-white" style="background:var(--sky-deep);color:#fff;padding:.8rem 2rem;border-radius:14px;text-decoration:none;font-weight:600">กลับหน้าแรก</a>
+</div>
+
+
