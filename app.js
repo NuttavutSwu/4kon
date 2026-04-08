@@ -109,6 +109,12 @@ app.get('/login', (req, res) => {
         redirect: req.query.redirect || '/'   // ✅ ต้องมีบรรทัดนี้
     });
 });
+app.get('/forgot-password', (req, res) => {
+    res.render('forgot-password', {
+        sent: false,   
+        email: ''      
+    });
+});
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}/register`);
