@@ -1,0 +1,59 @@
+<%- include('partials/header', { title: 'Wishlist' }) %>
+
+<div class="products-page">
+
+  <!-- Toolbar -->
+  <form class="products-toolbar" method="GET" action="/wishlist">
+    <div class="search-bar">
+      <span>🔍</span>
+      <input type="text" name="search" placeholder="ค้นหาสินค้า..." value="<%= query.search || '' %>">
+    </div>
+    <select class="filter-select" name="platform" onchange="this.form.submit()">
+      <option value="">ทุกแพลตฟอร์ม</option>
+      <option value="shopee" <%= query.platform === 'shopee' ? 'selected' : '' %>>Shopee</option>
+      <option value="lazada" <%= query.platform === 'lazada' ? 'selected' : '' %>>Lazada</option>
+      <option value="other"  <%= query.platform === 'other'  ? 'selected' : '' %>>อื่นๆ</option>
+    </select>
+    <select class="filter-select" name="sort" onchange="this.form.submit()">
+      <option value="">เรียงลำดับ</option>
+      <option value="price-asc"  <%= query.sort === 'price-asc'  ? 'selected' : '' %>>ราคา น้อย→มาก</option>
+      <option value="price-desc" <%= query.sort === 'price-desc' ? 'selected' : '' %>>ราคา มาก→น้อย</option>
+      <option value="name-asc"   <%= query.sort === 'name-asc'   ? 'selected' : '' %>>ชื่อ A→Z</option>
+    </select>
+    <button type="submit" class="btn-filter">ค้นหา</button>
+    <% if (currentUser) { %>
+      <a class="btn-add-wish" href="/products/add">＋ เพิ่มสินค้า</a>
+    <% } %>
+  </form>
+
+  <div class="products-layout">
+    <!-- Category sidebar -->
+    <aside class="category-sidebar">
+      <h3>หมวดหมู่</h3>
+      <a class="cat-item <%= !query.category || query.category === 'all' ? 'active' : '' %>"
+         href="/wishlist<%= query.search || query.platform || query.sort ? '?' + new URLSearchParams({search: query.search||'', platform: query.platform||'', sort: query.sort||'', category: 'all'}).toString() : '' %>">
+        ทั้งหมด
+      </a>
+      <% categories.forEach(cat => { %>
+        <a class="cat-item <%= query.category === cat.name ? 'active' : '' %>"
+           href="/wishlist?category=<%= encodeURIComponent(cat.name) %><%= query.platform ? '&platform=' + query.platform : '' %><%= query.sort ? '&sort=' + query.sort : '' %>">
+          <%= cat.name %>
+        </a>
+      <% }) %>
+    </aside>
+
+    <!-- Grid -->
+    <div class="products-grid">
+      <% if (currentUser) { %>
+        <a class="add-card" href="/products/add">
+          <div class="add-card-icon">＋</div>
+          <div class="add-card-label">Add<br>Wishlist</div>
+        </a>
+      <% } %>
+
+
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

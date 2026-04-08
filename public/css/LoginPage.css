@@ -1,0 +1,29 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* ห้าม Scroll */
+}
+
+.main-container {
+    display: flex;
+    width: 100vw;
+    height: 100dvh; /* Dynamic Viewport Height เพื่อความเป๊ะบนมือถือ */
+}
+
+/* ฝั่งซ้าย: จัดการรูปภาพ */
+.left-side {
+    flex: 1; /* กินพื้นที่ครึ่งหนึ่ง */
+    background-image: url('/src/Furina1.png'); /* ใส่ลิงก์รูปภาพของคุณที่นี่ */
+    background-size: cover;
+    background-position: center;
+}
+
+
+
