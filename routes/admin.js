@@ -1,16 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { requireAdmin } = require('../middleware/auth');
-const db = require('../utils/db');
+const db = require('../utils/db'); // << ใช้ db ตัวใหม่ (ที่มี read/insert/etc)
 
 // GET Admin dashboard
-router.get('/', requireAdmin, (req, res) => {
-  const products = db.read('products');
-  const users = db.read('users');
-  const categories = db.read('categories');
-  const logs = db.read('logs');
+router.get('/', requireAdmin, async (req, res) => {
+  const products = await db.read('products');
+  const users = await db.read('users');
+  const categories = await db.read('categories');
+  const logs = await db.read('logs');
 
-  const totalValue = products.reduce((sum, p) => sum + Number(p.price), 0);
+  const totalValue = products.reduce((sum, p) => sum + Number(p.price || 0), 0);
   const shopeeCount = products.filter(p => p.platform === 'shopee').length;
   const lazadaCount = products.filter(p => p.platform === 'lazada').length;
   const promoCount = products.filter(p => p.isPromo).length;
@@ -20,16 +20,29 @@ router.get('/', requireAdmin, (req, res) => {
     users,
     categories,
     logs: logs.slice(0, 50),
-    stats: { total: products.length, totalValue, shopeeCount, lazadaCount, promoCount, userCount: users.length }
+    stats: {
+      total: products.length,
+      totalValue,
+      shopeeCount,
+      lazadaCount,
+      promoCount,
+      userCount: users.length
+    }
   });
 });
 
+
 // POST Delete user (admin only)
-router.post('/users/delete/:id', requireAdmin, (req, res) => {
-  const users = db.read('users');
-  // Prevent deleting self
-  if (req.params.id === req.session.user.id) return res.redirect('/admin');
-  db.write('users', users.filter(u => u.id !== req.params.id));
+router.post('/users/delete/:id', requireAdmin, async (req, res) => {
+  const userId = req.params.id;
+
+  // ❗ กันลบตัวเอง
+  if (userId === req.session.user.id) {
+    return res.redirect('/admin');
+  }
+
+  await db.remove('users', userId);
+
   res.redirect('/admin');
 });
 

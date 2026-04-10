@@ -2,17 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { requireLogin } = require('../middleware/auth');
-const db = require('../utils/db');
+const supabase = require('../utils/supabase');
 
 // POST Add product
-router.post('/add', requireLogin, (req, res) => {
+router.post('/add', requireLogin, async (req, res) => {
   const { name, price, platform, category, link, description, imgUrl, isPromo } = req.body;
 
   if (!name || !price) {
     return res.redirect('/wishlist?error=missing');
   }
 
-  const products = db.read('products');
   const newProduct = {
     id: uuidv4(),
     name: name.trim(),
@@ -27,15 +26,21 @@ router.post('/add', requireLogin, (req, res) => {
     createdAt: new Date().toISOString()
   };
 
-  products.unshift(newProduct);
-  db.write('products', products);
+  // 👉 insert product
+  const { error } = await supabase.from('products').insert([newProduct]);
+  if (error) {
+    console.error(error);
+    return res.status(500).send('Error adding product');
+  }
 
-  // Add category if new
+  // 👉 add category if not exists
   if (newProduct.category) {
-    const categories = db.read('categories');
+    const { data: categories } = await supabase.from('categories').select('*');
+
     if (!categories.find(c => c.name === newProduct.category)) {
-      categories.push({ id: uuidv4(), name: newProduct.category });
-      db.write('categories', categories);
+      await supabase.from('categories').insert([
+        { id: uuidv4(), name: newProduct.category }
+      ]);
     }
   }
 
@@ -43,20 +48,28 @@ router.post('/add', requireLogin, (req, res) => {
 });
 
 // POST Edit product
-router.post('/edit/:id', requireLogin, (req, res) => {
+router.post('/edit/:id', requireLogin, async (req, res) => {
   const { name, price, platform, category, link, description, imgUrl, isPromo } = req.body;
-  const products = db.read('products');
-  const idx = products.findIndex(p => p.id === req.params.id);
 
-  if (idx === -1) return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
+  const { data: products } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', req.params.id)
+    .single();
 
-  // Only owner or admin can edit
-  if (products[idx].createdBy !== req.session.user.id && req.session.user.role !== 'admin') {
+  if (!products) {
+    return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
+  }
+
+  // check permission
+  if (
+    products.createdBy !== req.session.user.id &&
+    req.session.user.role !== 'admin'
+  ) {
     return res.status(403).render('error', { message: 'ไม่มีสิทธิ์แก้ไขสินค้านี้' });
   }
 
-  products[idx] = {
-    ...products[idx],
+  const updatedProduct = {
     name: name.trim(),
     price: Number(price),
     platform: platform || 'other',
@@ -68,14 +81,24 @@ router.post('/edit/:id', requireLogin, (req, res) => {
     updatedAt: new Date().toISOString()
   };
 
-  db.write('products', products);
+  const { error } = await supabase
+    .from('products')
+    .update(updatedProduct)
+    .eq('id', req.params.id);
 
-  // Add category if new
-  if (products[idx].category) {
-    const categories = db.read('categories');
-    if (!categories.find(c => c.name === products[idx].category)) {
-      categories.push({ id: uuidv4(), name: products[idx].category });
-      db.write('categories', categories);
+  if (error) {
+    console.error(error);
+    return res.status(500).send('Error updating product');
+  }
+
+  // add category if new
+  if (updatedProduct.category) {
+    const { data: categories } = await supabase.from('categories').select('*');
+
+    if (!categories.find(c => c.name === updatedProduct.category)) {
+      await supabase.from('categories').insert([
+        { id: uuidv4(), name: updatedProduct.category }
+      ]);
     }
   }
 
@@ -83,33 +106,58 @@ router.post('/edit/:id', requireLogin, (req, res) => {
 });
 
 // POST Delete product
-router.post('/delete/:id', requireLogin, (req, res) => {
-  const products = db.read('products');
-  const product = products.find(p => p.id === req.params.id);
+router.post('/delete/:id', requireLogin, async (req, res) => {
+  const { data: product } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', req.params.id)
+    .single();
 
-  if (!product) return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
+  if (!product) {
+    return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
+  }
 
-  if (product.createdBy !== req.session.user.id && req.session.user.role !== 'admin') {
+  if (
+    product.createdBy !== req.session.user.id &&
+    req.session.user.role !== 'admin'
+  ) {
     return res.status(403).render('error', { message: 'ไม่มีสิทธิ์ลบสินค้านี้' });
   }
 
-  db.write('products', products.filter(p => p.id !== req.params.id));
+  const { error } = await supabase
+    .from('products')
+    .delete()
+    .eq('id', req.params.id);
+
+  if (error) {
+    console.error(error);
+    return res.status(500).send('Error deleting product');
+  }
+
   res.redirect('/wishlist');
 });
 
 // GET Edit form
-router.get('/edit/:id', requireLogin, (req, res) => {
-  const products = db.read('products');
-  const product = products.find(p => p.id === req.params.id);
-  if (!product) return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
+router.get('/edit/:id', requireLogin, async (req, res) => {
+  const { data: product } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', req.params.id)
+    .single();
 
-  const categories = db.read('categories');
+  if (!product) {
+    return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
+  }
+
+  const { data: categories } = await supabase.from('categories').select('*');
+
   res.render('product_form', { product, categories, mode: 'edit' });
 });
 
 // GET Add form
-router.get('/add', requireLogin, (req, res) => {
-  const categories = db.read('categories');
+router.get('/add', requireLogin, async (req, res) => {
+  const { data: categories } = await supabase.from('categories').select('*');
+
   res.render('product_form', { product: null, categories, mode: 'add' });
 });
 
