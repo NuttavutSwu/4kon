@@ -1,0 +1,97 @@
+<%- include('partials/header', { title: mode === 'edit' ? 'แก้ไขสินค้า' : 'เพิ่มสินค้า' }) %>
+
+<div class="form-page">
+  <a class="detail-back" href="/wishlist">← กลับ</a>
+  <h1 class="form-page-title"><%= mode === 'edit' ? '✏️ แก้ไขสินค้า' : '＋ เพิ่มสินค้าใหม่' %></h1>
+
+  <form class="product-form" method="POST" action="/products/<%= mode === 'edit' ? 'edit/' + product.id : 'add' %>">
+
+    <!-- Image preview -->
+    <div id="imgPreviewBox" class="img-preview-box">
+      <% if (product && product.imgUrl) { %>
+        <img id="previewImg" src="<%= product.imgUrl %>" alt="preview">
+      <% } else { %>
+        <span id="previewEmoji" style="font-size:3rem">🖼️</span>
+      <% } %>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">URL รูปภาพสินค้า</label>
+      <input type="text" class="form-input" name="imgUrl" id="imgUrlInput"
+             placeholder="https://..." value="<%= product ? (product.imgUrl || '') : '' %>"
+             oninput="previewImage(this.value)">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">ชื่อสินค้า *</label>
+      <input type="text" class="form-input" name="name" required
+             placeholder="ชื่อสินค้า" value="<%= product ? product.name : '' %>">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">ราคา (บาท) *</label>
+        <input type="number" class="form-input" name="price" required min="0"
+               placeholder="0" value="<%= product ? product.price : '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">แพลตฟอร์ม</label>
+        <select class="form-input" name="platform">
+          <option value="other"   <%= (!product || product.platform === 'other')   ? 'selected' : '' %>>อื่นๆ</option>
+          <option value="shopee"  <%= (product && product.platform === 'shopee')   ? 'selected' : '' %>>Shopee</option>
+          <option value="lazada"  <%= (product && product.platform === 'lazada')   ? 'selected' : '' %>>Lazada</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">หมวดหมู่</label>
+      <input type="text" class="form-input" name="category"
+             placeholder="เช่น แฟชั่น, อิเล็กทรอนิกส์"
+             value="<%= product ? (product.category || '') : '' %>"
+             list="catSuggestions">
+      <datalist id="catSuggestions">
+        <% categories.forEach(c => { %>
+          <option value="<%= c.name %>">
+        <% }) %>
+      </datalist>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">ลิงก์สินค้า</label>
+      <input type="url" class="form-input" name="link"
+             placeholder="https://shopee.co.th/..."
+             value="<%= product ? (product.link || '') : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">รายละเอียด</label>
+      <textarea class="form-input textarea" name="description"
+                placeholder="รายละเอียดสินค้า..."><%= product ? (product.description || '') : '' %></textarea>
+    </div>
+
+    <div class="form-check">
+      <input type="checkbox" id="isPromo" name="isPromo"
+             <%= (product && product.isPromo) ? 'checked' : '' %>>
+      <label for="isPromo">สินค้าโปรโมชั่น 🏷️</label>
+    </div>
+
+    <div class="form-actions">
+      <a class="btn-cancel" href="/wishlist">ยกเลิก</a>
+      <button type="submit" class="btn-save">💾 บันทึก</button>
+    </div>
+  </form>
+</div>
+
+<script>
+function previewImage(url) {
+  const box = document.getElementById('imgPreviewBox');
+  if (url) {
+    box.innerHTML = '<img id="previewImg" src="' + url + '" alt="preview" onerror="this.parentElement.innerHTML=\'<span style=font-size:3rem>🖼️</span>\'">';
+  } else {
+    box.innerHTML = '<span style="font-size:3rem">🖼️</span>';
+  }
+}
+</script>
+
+<%- include('partials/footer') %>

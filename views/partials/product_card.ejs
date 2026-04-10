@@ -1,0 +1,18 @@
+<a class="product-card" href="/product/<%= product.id %>">
+  <div class="product-card-img">
+    <% if (product.imgUrl) { %>
+      <img src="<%= product.imgUrl %>" alt="<%= product.name %>" onerror="this.style.display='none'">
+    <% } else { %>
+      <div class="no-img"><%= product.platform === 'shopee' ? '🛍️' : product.platform === 'lazada' ? '📦' : '🔗' %></div>
+    <% } %>
+    <span class="platform-badge <%= product.platform %>"><%= product.platform || 'other' %></span>
+    <% if (product.isPromo) { %><span class="promo-badge">PROMO</span><% } %>
+  </div>
+  <div class="product-card-body">
+    <div class="product-card-name"><%= product.name %></div>
+    <div class="product-card-price">฿<%= Number(product.price).toLocaleString() %></div>
+    <% if (product.description) { %>
+      <div class="product-card-desc"><%= product.description %></div>
+    <% } %>
+  </div>
+</a>
