@@ -149,16 +149,37 @@ router.get('/edit/:id', requireLogin, async (req, res) => {
     return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
   }
 
-  const { data: categories } = await supabase.from('categories').select('*');
+  const { data: categories, error } = await supabase
+    .from('categories')
+    .select('*');
 
-  res.render('product_form', { product, categories, mode: 'edit' });
+  if (error) {
+    console.error(error);
+  }
+
+  res.render('product_form', {
+    product,
+    categories: categories || [], // ✅ แก้ตรงนี้
+    mode: 'edit'
+  });
 });
+
 
 // GET Add form
 router.get('/add', requireLogin, async (req, res) => {
-  const { data: categories } = await supabase.from('categories').select('*');
+  const { data: categories, error } = await supabase
+    .from('categories')
+    .select('*');
 
-  res.render('product_form', { product: null, categories, mode: 'add' });
+  if (error) {
+    console.error(error);
+  }
+
+  res.render('product_form', {
+    product: null,
+    categories: categories || [], // ✅ แก้ตรงนี้
+    mode: 'add'
+  });
 });
 
 module.exports = router;

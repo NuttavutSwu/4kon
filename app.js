@@ -33,6 +33,8 @@ app.use((req, res, next) => {
   next();
 });
 
+
+
 // Routes
 app.use('/', pageRoutes);
 app.use('/auth', authRoutes);

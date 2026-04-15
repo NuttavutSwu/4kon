@@ -16,14 +16,19 @@ async function read(table) {
 
 // INSERT
 async function insert(table, data) {
-  const { error } = await supabase
+  const { data: result, error } = await supabase
     .from(table)
-    .insert(data);
+    .insert(data)
+    .select();
 
   if (error) {
     console.error('INSERT ERROR:', error);
+    return { success: false, error };
   }
+
+  return { success: true, data: result };
 }
+
 
 // UPDATE
 async function update(table, id, newData) {
@@ -56,16 +61,18 @@ async function seed() {
   const users = await read('users');
 
   if (users.length === 0) {
-    await insert('users', [
-      {
-        id: '1',
-        username: 'admin',
-        email: 'admin@starwish.com',
-        password: bcrypt.hashSync('admin123', 10),
-        role: 'admin',
-        createdAt: new Date().toISOString()
-      }
-    ]);
+    const { v4: uuidv4 } = require('uuid');
+
+await insert('users', [
+  {
+    id: uuidv4(), // ✅ uuid เท่านั้น
+    username: 'admin',
+    email: 'admin@starwish.com',
+    password: bcrypt.hashSync('admin123', 10),
+    role_id: 1, // ✅ ใช้ role_id
+    created_at: new Date().toISOString() // ✅ snake_case
+  }
+]);
 
     console.log('✅ Seed users complete');
   }

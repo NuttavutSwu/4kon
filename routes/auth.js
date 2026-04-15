@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const supabase = require('../utils/supabase');
+const db = require('../utils/db');
 
 // POST Login
 router.post('/login', async (req, res) => {
@@ -22,7 +22,7 @@ router.post('/login', async (req, res) => {
     id: user.id,
     username: user.username,
     email: user.email,
-    role: user.role
+    role: user.role_id === 1 ? 'admin' : 'user'
   };
 
   res.redirect(redirect || '/wishlist');
@@ -48,20 +48,25 @@ router.post('/register', async (req, res) => {
 
   const newUser = {
     id: uuidv4(),
-    username,
-    email,
+    username: username.trim(),
+    email: email.trim(),
     password: bcrypt.hashSync(password, 10),
-    role: 'user',
-    createdAt: new Date().toISOString()
+
+    role_id: 2, // ✅ ใช้แทน role
+    created_at: new Date().toISOString() // ✅ snake_case
   };
 
-  await db.insert('users', newUser);
+  const result = await db.insert('users', [newUser]); // ✅ ต้องเป็น array
+
+  if (!result || result.success === false) {
+    return res.render('register', { error: 'สมัครไม่สำเร็จ' });
+  }
 
   req.session.user = {
     id: newUser.id,
     username: newUser.username,
     email: newUser.email,
-    role: newUser.role
+    role: 'user'
   };
 
   res.redirect('/wishlist');
