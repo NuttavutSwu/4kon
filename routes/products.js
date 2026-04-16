@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const { requireLogin } = require('../middleware/auth');
 const supabase = require('../utils/supabase');
 
-// POST Add product
+// ================== ADD ==================
 router.post('/add', requireLogin, async (req, res) => {
   const { name, price, platform, category, link, description, imgUrl, isPromo } = req.body;
 
@@ -26,20 +26,31 @@ router.post('/add', requireLogin, async (req, res) => {
     createdAt: new Date().toISOString()
   };
 
-  // 👉 insert product
   const { error } = await supabase.from('products').insert([newProduct]);
   if (error) {
     console.error(error);
     return res.status(500).send('Error adding product');
   }
 
-  // 👉 add category if not exists
+ 
   if (newProduct.category) {
-    const { data: categories } = await supabase.from('categories').select('*');
+    let query = supabase.from('categories').select('*');
 
-    if (!categories.find(c => c.name === newProduct.category)) {
+    if (req.session.user.role !== 'admin') {
+      query = query.eq('createdBy', req.session.user.id);
+    }
+
+    const { data: categories } = await query;
+
+    const exists = categories?.find(c => c.name === newProduct.category);
+
+    if (!exists) {
       await supabase.from('categories').insert([
-        { id: uuidv4(), name: newProduct.category }
+        {
+          id: uuidv4(),
+          name: newProduct.category,
+          createdBy: req.session.user.id
+        }
       ]);
     }
   }
@@ -47,26 +58,24 @@ router.post('/add', requireLogin, async (req, res) => {
   res.redirect('/product/' + newProduct.id);
 });
 
-// POST Edit product
+
+// ================== EDIT ==================
 router.post('/edit/:id', requireLogin, async (req, res) => {
   const { name, price, platform, category, link, description, imgUrl, isPromo } = req.body;
 
-  const { data: products } = await supabase
+  let query = supabase
     .from('products')
     .select('*')
-    .eq('id', req.params.id)
-    .single();
+    .eq('id', req.params.id);
 
-  if (!products) {
-    return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
+  if (req.session.user.role !== 'admin') {
+    query = query.eq('createdBy', req.session.user.id);
   }
 
-  // check permission
-  if (
-    products.createdBy !== req.session.user.id &&
-    req.session.user.role !== 'admin'
-  ) {
-    return res.status(403).render('error', { message: 'ไม่มีสิทธิ์แก้ไขสินค้านี้' });
+  const { data: product } = await query.single();
+
+  if (!product) {
+    return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
   }
 
   const updatedProduct = {
@@ -77,8 +86,7 @@ router.post('/edit/:id', requireLogin, async (req, res) => {
     link: link ? link.trim() : '',
     description: description ? description.trim() : '',
     imgUrl: imgUrl ? imgUrl.trim() : '',
-    isPromo: isPromo === 'on',
-    updatedAt: new Date().toISOString()
+    isPromo: isPromo === 'on'
   };
 
   const { error } = await supabase
@@ -91,37 +99,26 @@ router.post('/edit/:id', requireLogin, async (req, res) => {
     return res.status(500).send('Error updating product');
   }
 
-  // add category if new
-  if (updatedProduct.category) {
-    const { data: categories } = await supabase.from('categories').select('*');
-
-    if (!categories.find(c => c.name === updatedProduct.category)) {
-      await supabase.from('categories').insert([
-        { id: uuidv4(), name: updatedProduct.category }
-      ]);
-    }
-  }
-
   res.redirect('/product/' + req.params.id);
 });
 
-// POST Delete product
+
+// ================== DELETE ==================
 router.post('/delete/:id', requireLogin, async (req, res) => {
-  const { data: product } = await supabase
+
+  let query = supabase
     .from('products')
     .select('*')
-    .eq('id', req.params.id)
-    .single();
+    .eq('id', req.params.id);
+
+  if (req.session.user.role !== 'admin') {
+    query = query.eq('createdBy', req.session.user.id);
+  }
+
+  const { data: product } = await query.single();
 
   if (!product) {
     return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
-  }
-
-  if (
-    product.createdBy !== req.session.user.id &&
-    req.session.user.role !== 'admin'
-  ) {
-    return res.status(403).render('error', { message: 'ไม่มีสิทธิ์ลบสินค้านี้' });
   }
 
   const { error } = await supabase
@@ -137,47 +134,57 @@ router.post('/delete/:id', requireLogin, async (req, res) => {
   res.redirect('/wishlist');
 });
 
-// GET Edit form
+
+// ================== GET EDIT FORM ==================
 router.get('/edit/:id', requireLogin, async (req, res) => {
-  const { data: product } = await supabase
+
+  let query = supabase
     .from('products')
     .select('*')
-    .eq('id', req.params.id)
-    .single();
+    .eq('id', req.params.id);
+
+  if (req.session.user.role !== 'admin') {
+    query = query.eq('createdBy', req.session.user.id);
+  }
+
+  const { data: product } = await query.single();
 
   if (!product) {
     return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
   }
 
-  const { data: categories, error } = await supabase
-    .from('categories')
-    .select('*');
+  
+  let catQuery = supabase.from('categories').select('*');
 
-  if (error) {
-    console.error(error);
+  if (req.session.user.role !== 'admin') {
+    catQuery = catQuery.eq('createdBy', req.session.user.id);
   }
+
+  const { data: categories } = await catQuery;
 
   res.render('product_form', {
     product,
-    categories: categories || [], 
+    categories: categories || [],
     mode: 'edit'
   });
 });
 
 
-// GET Add form
+// ================== GET ADD FORM ==================
 router.get('/add', requireLogin, async (req, res) => {
-  const { data: categories, error } = await supabase
-    .from('categories')
-    .select('*');
 
-  if (error) {
-    console.error(error);
+  
+  let catQuery = supabase.from('categories').select('*');
+
+  if (req.session.user.role !== 'admin') {
+    catQuery = catQuery.eq('createdBy', req.session.user.id);
   }
+
+  const { data: categories } = await catQuery;
 
   res.render('product_form', {
     product: null,
-    categories: categories || [], 
+    categories: categories || [],
     mode: 'add'
   });
 });

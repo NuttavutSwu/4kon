@@ -64,7 +64,10 @@ router.get('/wishlist', requireLogin, async (req, res) => {
       console.error(error);
     }
 
-    let filteredProducts = products || [];
+    // ✅ กรอง owner ซ้ำอีกรอบกันพลาด
+    let filteredProducts = (products || []).filter(
+      p => p.createdBy === req.session.user.id
+    );
 
     // 🔍 search
     if (search) {
@@ -97,13 +100,14 @@ router.get('/wishlist', requireLogin, async (req, res) => {
 });
 
 
+
 // ===== Product Detail (ล็อกเฉพาะเจ้าของ) =====
 router.get('/product/:id', requireLogin, async (req, res) => {
   const { data: product, error } = await supabase
     .from('products')
     .select('*')
     .eq('id', req.params.id)
-    .eq('createdBy', req.session.user.id) // ✅ กันดูของคนอื่น
+    .eq('createdBy', req.session.user.id) 
     .single();
 
   if (error || !product) {
