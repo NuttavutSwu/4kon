@@ -1,0 +1,192 @@
+<%- include('../partials/admin_header', { title, activePage }) %>
+
+<!-- Greeting -->
+<div class="dash-greeting">
+  <h1>Good day, <%= currentUser.username %> 👋</h1>
+  <p>นี่คือภาพรวมของ StarWish วันนี้ — อัปเดต real-time ทุกครั้งที่โหลดหน้า</p>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+  <div class="kpi-card blue">
+    <div class="kpi-card-accent"></div>
+    <div class="kpi-icon">🛒</div>
+    <div class="kpi-label">สินค้าทั้งหมด</div>
+    <div class="kpi-value blue"><%= stats.total %></div>
+    <div class="kpi-sub"><%= stats.promoCount %> รายการเป็นโปรโมชั่น</div>
+  </div>
+  <div class="kpi-card green">
+    <div class="kpi-card-accent"></div>
+    <div class="kpi-icon">💰</div>
+    <div class="kpi-label">มูลค่า Wishlist รวม</div>
+    <div class="kpi-value green">฿<%= stats.totalValue.toLocaleString() %></div>
+    <div class="kpi-sub">เฉลี่ย ฿<%= stats.avgPrice.toLocaleString() %> / ชิ้น</div>
+  </div>
+  <div class="kpi-card orange">
+    <div class="kpi-card-accent"></div>
+    <div class="kpi-icon">👥</div>
+    <div class="kpi-label">ผู้ใช้งาน</div>
+    <div class="kpi-value orange"><%= stats.userCount %></div>
+    <div class="kpi-sub"><%= stats.categoryCount %> หมวดหมู่ทั้งหมด</div>
+  </div>
+  <div class="kpi-card purple">
+    <div class="kpi-card-accent"></div>
+    <div class="kpi-icon">📋</div>
+    <div class="kpi-label">Log การซื้อวันนี้</div>
+    <div class="kpi-value purple"><%= stats.logsToday %></div>
+    <div class="kpi-sub">คลิกซื้อทั้งหมด <%= logs.length %> ครั้ง</div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="dash-charts">
+
+  <!-- Platform breakdown -->
+  <div class="dash-card">
+    <div class="dash-card-head">
+      <h3>แพลตฟอร์ม</h3>
+      <span style="font-size:.8rem;color:#7a8ea0"><%= stats.total %> รายการ</span>
+    </div>
+    <div class="dash-card-body">
+      <div class="platform-bar-wrap">
+        <div class="platform-row">
+          <div class="platform-row-top">
+            <span class="platform-row-label">🛍 Shopee</span>
+            <span class="platform-row-count"><%= stats.shopeeCount %> รายการ (<%= stats.total ? Math.round(stats.shopeeCount/stats.total*100) : 0 %>%)</span>
+          </div>
+          <div class="platform-bar-bg">
+            <div class="platform-bar-fill shopee" data-width="<%= stats.total ? Math.round(stats.shopeeCount/stats.total*100) : 0 %>" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="platform-row">
+          <div class="platform-row-top">
+            <span class="platform-row-label">📦 Lazada</span>
+            <span class="platform-row-count"><%= stats.lazadaCount %> รายการ (<%= stats.total ? Math.round(stats.lazadaCount/stats.total*100) : 0 %>%)</span>
+          </div>
+          <div class="platform-bar-bg">
+            <div class="platform-bar-fill lazada" data-width="<%= stats.total ? Math.round(stats.lazadaCount/stats.total*100) : 0 %>" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="platform-row">
+          <div class="platform-row-top">
+            <span class="platform-row-label">🔗 อื่นๆ</span>
+            <span class="platform-row-count"><%= stats.otherCount %> รายการ (<%= stats.total ? Math.round(stats.otherCount/stats.total*100) : 0 %>%)</span>
+          </div>
+          <div class="platform-bar-bg">
+            <div class="platform-bar-fill other" data-width="<%= stats.total ? Math.round(stats.otherCount/stats.total*100) : 0 %>" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid #f0f4f8;">
+          <div style="font-size:.8rem;color:#7a8ea0;margin-bottom:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Highlight</div>
+          <% if (stats.topProduct) { %>
+            <div style="font-size:.82rem;color:#2d3a45">สินค้าแพงสุด: <strong><%= stats.topProduct.name %></strong> — ฿<%= Number(stats.topProduct.price).toLocaleString() %></div>
+          <% } %>
+          <% if (stats.cheapProduct) { %>
+            <div style="font-size:.82rem;color:#2d3a45;margin-top:.3rem">สินค้าถูกสุด: <strong><%= stats.cheapProduct.name %></strong> — ฿<%= Number(stats.cheapProduct.price).toLocaleString() %></div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Price distribution -->
+  <div class="dash-card">
+    <div class="dash-card-head">
+      <h3>การกระจายราคา</h3>
+      <span style="font-size:.8rem;color:#7a8ea0">จำนวนสินค้าในแต่ละช่วง</span>
+    </div>
+    <div class="dash-card-body">
+      <div class="price-bins">
+        <% bins.forEach(bin => { %>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:.3rem">
+            <div style="font-size:.72rem;color:#7a8ea0;font-weight:600"><%= bin.count %></div>
+            <div class="price-bin"
+                 data-height="<%= maxBin > 0 ? Math.max(8, Math.round(bin.count/maxBin*70)) : 8 %>"
+                 style="height:8px;width:100%;background:#EBF4FB;border-radius:4px 4px 0 0;transition:height .8s cubic-bezier(.4,0,.2,1)"></div>
+          </div>
+        <% }) %>
+      </div>
+      <div style="display:flex;gap:.3rem;margin-top:.4rem">
+        <% bins.forEach(bin => { %>
+          <div class="price-bin-label" style="flex:1"><%= bin.label %></div>
+        <% }) %>
+      </div>
+
+      <!-- Category breakdown -->
+      <div style="margin-top:1.3rem;padding-top:1rem;border-top:1px solid #f0f4f8">
+        <div style="font-size:.8rem;color:#7a8ea0;margin-bottom:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em">หมวดหมู่ยอดนิยม</div>
+        <div class="category-list">
+          <% catBreakdown.forEach((cat, i) => { %>
+            <div class="category-row">
+              <div class="category-dot" style="background:<%= dotColors[i] || '#aab8c5' %>"></div>
+              <div class="category-name"><%= cat.name %></div>
+              <div class="category-count"><%= cat.count %></div>
+            </div>
+          <% }) %>
+          <% if (catBreakdown.length === 0) { %>
+            <div style="color:#aab8c5;font-size:.82rem">ยังไม่มีสินค้า</div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Row -->
+<div class="dash-bottom">
+
+  <!-- Recent purchase logs -->
+  <div class="dash-card">
+    <div class="dash-card-head">
+      <h3>Log การกดซื้อล่าสุด</h3>
+      <a href="/admin/logs" style="font-size:.8rem;color:#45B3E0;text-decoration:none;font-weight:600">ดูทั้งหมด →</a>
+    </div>
+    <div class="mini-log">
+      <% if (logs.length === 0) { %>
+        <div class="mini-empty">ยังไม่มี Log การซื้อ</div>
+      <% } %>
+      <% logs.forEach(l => { %>
+        <div class="mini-log-row">
+          <div class="mini-log-dot"></div>
+          <div class="mini-log-product"><%= l.productName %></div>
+          <div class="mini-log-user"><%= l.user %></div>
+          <div class="mini-log-time"><%= new Date(l.time).toLocaleString('th-TH', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) %></div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="dash-card">
+    <div class="dash-card-head"><h3>Quick Actions</h3></div>
+    <div class="quick-actions">
+      <a class="quick-action-btn" href="/products/add">
+        <div class="quick-action-icon">＋</div>
+        เพิ่มสินค้าใหม่
+      </a>
+      <a class="quick-action-btn" href="/admin/products">
+        <div class="quick-action-icon">▣</div>
+        จัดการสินค้าทั้งหมด
+      </a>
+      <a class="quick-action-btn" href="/admin/categories">
+        <div class="quick-action-icon">◫</div>
+        จัดการหมวดหมู่
+      </a>
+      <a class="quick-action-btn" href="/admin/users">
+        <div class="quick-action-icon">◉</div>
+        จัดการผู้ใช้งาน
+      </a>
+      <a class="quick-action-btn" href="/admin/logs">
+        <div class="quick-action-icon">◎</div>
+        ดู Log ทั้งหมด
+      </a>
+      <a class="quick-action-btn" href="/wishlist" target="_blank">
+        <div class="quick-action-icon">↗</div>
+        ดูหน้าเว็บ (User view)
+      </a>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/admin_footer') %>

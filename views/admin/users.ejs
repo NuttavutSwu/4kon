@@ -1,0 +1,43 @@
+<%- include('../partials/admin_header', { title, activePage }) %>
+
+<div class="admin-page-header">
+  <div>
+    <div class="admin-page-title">จัดการผู้ใช้งาน</div>
+    <div class="admin-page-sub"><%= users.length %> บัญชีทั้งหมด</div>
+  </div>
+</div>
+
+<div class="admin-table-wrap">
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>Username</th><th>Email</th><th>Role</th><th>สมัครเมื่อ</th><th>จัดการ</th></tr>
+      </thead>
+      <tbody>
+        <% users.forEach(u => { %>
+          <tr>
+            <td><strong><%= u.username %></strong></td>
+            <td style="color:#7a8ea0"><%= u.email %></td>
+            <td>
+              <span class="tbl-badge <%= u.role === 'admin' ? 'lazada' : 'shopee' %>">
+                <%= u.role %>
+              </span>
+            </td>
+            <td style="font-size:.78rem;color:#7a8ea0"><%= new Date(u.createdAt).toLocaleDateString('th-TH') %></td>
+            <td>
+              <% if (u.id !== currentUser.id) { %>
+                <form method="POST" action="/admin/users/delete/<%= u.id %>" style="display:inline" onsubmit="return confirm('ลบผู้ใช้ <%= u.username %>?')">
+                  <button type="submit" class="tbl-action">🗑️</button>
+                </form>
+              <% } else { %>
+                <span style="color:#aab8c5;font-size:.78rem">(คุณ)</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/admin_footer') %>

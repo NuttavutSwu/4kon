@@ -1,60 +1,99 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../utils/db'); // ✅ ใช้ db
+const supabase = require('../utils/supabase');
+const { requireLogin } = require('../middleware/auth');
 
 // Home
 router.get('/', async (req, res) => {
-  const products = await db.read('products');
 
-  const totalValue = products.reduce((sum, p) => sum + Number(p.price || 0), 0);
-  const promoCount = products.filter(p => p.isPromo).length;
+  // ถ้ายังไม่ login
+  if (!req.session.user) {
+    return res.render('home', {
+      products: [],
+      stats: { total: 0, totalValue: 0, promoCount: 0 }
+    });
+  }
+
+  const { data: products } = await supabase
+    .from('products')
+    .select('*')
+    .eq('createdBy', req.session.user.id); // ✅ เพิ่มตรงนี้
+
+  const totalValue = (products || []).reduce((sum, p) => sum + Number(p.price || 0), 0);
+  const promoCount = (products || []).filter(p => p.isPromo).length;
 
   res.render('home', {
-    products: products.slice(0, 4),
+    products: (products || []).slice(0, 4),
     stats: { total: products.length, totalValue, promoCount }
   });
 });
 
 
-// Wishlist / Products listing
-router.get('/wishlist', async (req, res) => {
-  let products = await db.read('products');
-  const categories = await db.read('categories');
+router.get('/wishlist', requireLogin, async (req, res) => {
+  try {
+    const { search, platform, sort, category } = req.query;
 
-  const { search, platform, sort, category } = req.query;
+    let queryBuilder = supabase
+      .from('products')
+      .select('*')
+      .eq('createdBy', req.session.user.id);
 
-  if (category && category !== 'all') {
-    products = products.filter(p => p.category === category);
+    // filter category
+    if (category && category !== 'all') {
+      queryBuilder = queryBuilder.eq('category', category);
+    }
+
+    // filter platform
+    if (platform) {
+      queryBuilder = queryBuilder.eq('platform', platform);
+    }
+
+    const { data: products, error } = await queryBuilder;
+
+    if (error) {
+      console.error(error);
+    }
+
+    // 🔍 search (ยังใช้ JS ได้)
+    let filteredProducts = products || [];
+
+    if (search) {
+      const q = search.toLowerCase();
+      filteredProducts = filteredProducts.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q)
+      );
+    }
+
+    // 🔃 sort
+    if (sort === 'price-asc') filteredProducts.sort((a, b) => a.price - b.price);
+    if (sort === 'price-desc') filteredProducts.sort((a, b) => b.price - a.price);
+    if (sort === 'name-asc') filteredProducts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+
+    const { data: categories } = await supabase
+      .from('categories')
+      .select('*');
+      
+    res.render('wishlist', {
+      products: filteredProducts,
+      categories: categories || [],
+      query: req.query
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
   }
-
-  if (platform) {
-    products = products.filter(p => p.platform === platform);
-  }
-
-  if (search) {
-    const q = search.toLowerCase();
-    products = products.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      (p.description || '').toLowerCase().includes(q)
-    );
-  }
-
-  if (sort === 'price-asc') products.sort((a, b) => a.price - b.price);
-  if (sort === 'price-desc') products.sort((a, b) => b.price - a.price);
-  if (sort === 'name-asc') products.sort((a, b) => a.name.localeCompare(b.name, 'th'));
-
-  res.render('wishlist', {
-    products,
-    categories,
-    query: req.query
-  });
 });
 
 
 // Product detail
 router.get('/product/:id', async (req, res) => {
-  const products = await db.read('products');
-  const product = products.find(p => p.id === req.params.id);
+  const { data: product } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', req.params.id)
+    .single();
 
   if (!product) {
     return res.status(404).render('error', { message: 'ไม่พบสินค้านี้' });
@@ -63,24 +102,29 @@ router.get('/product/:id', async (req, res) => {
   res.render('product_detail', { product });
 });
 
-
 // Log buy click
 router.post('/product/:id/buy', async (req, res) => {
-  const products = await db.read('products');
-  const product = products.find(p => p.id === req.params.id);
+  const { data: product } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', req.params.id)
+    .single();
 
   if (product) {
-    await db.insert('logs', {
-      id: Date.now().toString(),
-      productId: product.id,
-      productName: product.name,
-      user: req.session.user ? req.session.user.username : 'guest',
-      time: new Date().toISOString()
-    });
+    await supabase.from('logs').insert([
+      {
+        id: Date.now().toString(),
+        productId: product.id,
+        productName: product.name,
+        user: req.session.user ? req.session.user.username : 'guest',
+        time: new Date().toISOString()
+      }
+    ]);
   }
 
   res.json({ ok: true, link: product ? product.link : '#' });
 });
+
 
 
 // About

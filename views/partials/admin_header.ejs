@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title + ' – StarWish Admin' : 'StarWish Admin' %></title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body">
+
+<!-- ADMIN SIDEBAR -->
+<aside class="admin-sidebar">
+  <div class="admin-sidebar-brand">
+    <div class="admin-brand-icon">⭐</div>
+    <div>
+      <div class="admin-brand-name">StarWish</div>
+      <div class="admin-brand-sub">Admin Panel</div>
+    </div>
+  </div>
+
+  <nav class="admin-nav">
+    <div class="admin-nav-section">OVERVIEW</div>
+    <a class="admin-nav-link <%= typeof activePage !== 'undefined' && activePage === 'dashboard' ? 'active' : '' %>" href="/admin">
+      <span class="admin-nav-icon">◈</span> Dashboard
+    </a>
+
+    <div class="admin-nav-section">MANAGE</div>
+    <a class="admin-nav-link <%= typeof activePage !== 'undefined' && activePage === 'products' ? 'active' : '' %>" href="/admin/products">
+      <span class="admin-nav-icon">▣</span> สินค้า
+    </a>
+    <a class="admin-nav-link <%= typeof activePage !== 'undefined' && activePage === 'categories' ? 'active' : '' %>" href="/admin/categories">
+      <span class="admin-nav-icon">◫</span> หมวดหมู่
+    </a>
+    <a class="admin-nav-link <%= typeof activePage !== 'undefined' && activePage === 'users' ? 'active' : '' %>" href="/admin/users">
+      <span class="admin-nav-icon">◉</span> ผู้ใช้งาน
+    </a>
+    <a class="admin-nav-link <%= typeof activePage !== 'undefined' && activePage === 'logs' ? 'active' : '' %>" href="/admin/logs">
+      <span class="admin-nav-icon">◎</span> Logs
+    </a>
+
+    <div class="admin-nav-section">SITE</div>
+    <a class="admin-nav-link" href="/wishlist" target="_blank">
+      <span class="admin-nav-icon">↗</span> ดูหน้าเว็บ
+    </a>
+    <a class="admin-nav-link" href="/auth/logout">
+      <span class="admin-nav-icon">←</span> ออกจากระบบ
+    </a>
+  </nav>
+
+  <div class="admin-sidebar-user">
+    <div class="admin-sidebar-avatar"><%= currentUser.username[0].toUpperCase() %></div>
+    <div>
+      <div class="admin-sidebar-username"><%= currentUser.username %></div>
+      <div class="admin-sidebar-role">Administrator</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ADMIN TOP BAR -->
+<div class="admin-topbar">
+  <button class="admin-sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="admin-topbar-title"><%= typeof title !== 'undefined' ? title : 'Dashboard' %></div>
+  <div class="admin-topbar-right">
+    <span class="admin-topbar-date" id="topbarDate"></span>
+    <a class="admin-topbar-home" href="/">← กลับหน้าหลัก</a>
+  </div>
+</div>
+
+<!-- PAGE CONTENT WRAPPER -->
+<main class="admin-main">
