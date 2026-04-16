@@ -3,32 +3,44 @@ const router = express.Router();
 const supabase = require('../utils/supabase');
 const { requireLogin } = require('../middleware/auth');
 
-// Home
+// ===== Home =====
 router.get('/', async (req, res) => {
 
-  // ถ้ายังไม่ login
+  // guest
   if (!req.session.user) {
     return res.render('home', {
       products: [],
-      stats: { total: 0, totalValue: 0, promoCount: 0 }
+      stats: { total: 0, totalValue: 0, promoCount: 0 },
+      guest: true
     });
   }
 
-  const { data: products } = await supabase
+  const { data: products, error } = await supabase
     .from('products')
     .select('*')
-    .eq('createdBy', req.session.user.id); // ✅ เพิ่มตรงนี้
+    .eq('createdBy', req.session.user.id);
 
-  const totalValue = (products || []).reduce((sum, p) => sum + Number(p.price || 0), 0);
-  const promoCount = (products || []).filter(p => p.isPromo).length;
+  if (error) {
+    console.error(error);
+  }
+
+  const safeProducts = products || [];
+
+  const totalValue = safeProducts.reduce((sum, p) => sum + Number(p.price || 0), 0);
+  const promoCount = safeProducts.filter(p => p.isPromo).length;
 
   res.render('home', {
-    products: (products || []).slice(0, 4),
-    stats: { total: products.length, totalValue, promoCount }
+    products: safeProducts.slice(0, 4),
+    stats: {
+      total: safeProducts.length,
+      totalValue,
+      promoCount
+    }
   });
 });
 
 
+// ===== Wishlist =====
 router.get('/wishlist', requireLogin, async (req, res) => {
   try {
     const { search, platform, sort, category } = req.query;
@@ -38,12 +50,10 @@ router.get('/wishlist', requireLogin, async (req, res) => {
       .select('*')
       .eq('createdBy', req.session.user.id);
 
-    // filter category
     if (category && category !== 'all') {
       queryBuilder = queryBuilder.eq('category', category);
     }
 
-    // filter platform
     if (platform) {
       queryBuilder = queryBuilder.eq('platform', platform);
     }
@@ -54,9 +64,9 @@ router.get('/wishlist', requireLogin, async (req, res) => {
       console.error(error);
     }
 
-    // 🔍 search (ยังใช้ JS ได้)
     let filteredProducts = products || [];
 
+    // 🔍 search
     if (search) {
       const q = search.toLowerCase();
       filteredProducts = filteredProducts.filter(p =>
@@ -73,7 +83,7 @@ router.get('/wishlist', requireLogin, async (req, res) => {
     const { data: categories } = await supabase
       .from('categories')
       .select('*');
-      
+
     res.render('wishlist', {
       products: filteredProducts,
       categories: categories || [],
@@ -87,22 +97,24 @@ router.get('/wishlist', requireLogin, async (req, res) => {
 });
 
 
-// Product detail
-router.get('/product/:id', async (req, res) => {
-  const { data: product } = await supabase
+// ===== Product Detail (ล็อกเฉพาะเจ้าของ) =====
+router.get('/product/:id', requireLogin, async (req, res) => {
+  const { data: product, error } = await supabase
     .from('products')
     .select('*')
     .eq('id', req.params.id)
+    .eq('createdBy', req.session.user.id) // ✅ กันดูของคนอื่น
     .single();
 
-  if (!product) {
+  if (error || !product) {
     return res.status(404).render('error', { message: 'ไม่พบสินค้านี้' });
   }
 
   res.render('product_detail', { product });
 });
 
-// Log buy click
+
+// ===== Log Buy =====
 router.post('/product/:id/buy', async (req, res) => {
   const { data: product } = await supabase
     .from('products')
@@ -111,7 +123,7 @@ router.post('/product/:id/buy', async (req, res) => {
     .single();
 
   if (product) {
-    await supabase.from('logs').insert([
+    const { error } = await supabase.from('logs').insert([
       {
         id: Date.now().toString(),
         productId: product.id,
@@ -120,20 +132,21 @@ router.post('/product/:id/buy', async (req, res) => {
         time: new Date().toISOString()
       }
     ]);
+
+    if (error) {
+      console.error('Log error:', error);
+    }
   }
 
   res.json({ ok: true, link: product ? product.link : '#' });
 });
 
 
-
-// About
+// ===== Static pages =====
 router.get('/about', (req, res) => {
   res.render('about');
 });
 
-
-// Login / Register pages
 router.get('/login', (req, res) => {
   if (req.session.user) return res.redirect('/wishlist');
   res.render('login', { error: null, redirect: req.query.redirect || '/wishlist' });
