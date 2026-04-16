@@ -1,62 +1,112 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../utils/db'); // ✅ ใช้ db
+const supabase = require('../utils/supabase');
+const { requireLogin } = require('../middleware/auth');
 
-// Home
+// ===== Home =====
 router.get('/', async (req, res) => {
-  const products = await db.read('products');
 
-  const totalValue = products.reduce((sum, p) => sum + Number(p.price || 0), 0);
-  const promoCount = products.filter(p => p.isPromo).length;
+  // guest
+  if (!req.session.user) {
+    return res.render('home', {
+      products: [],
+      stats: { total: 0, totalValue: 0, promoCount: 0 },
+      guest: true
+    });
+  }
+
+  const { data: products, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('createdBy', req.session.user.id);
+
+  if (error) {
+    console.error(error);
+  }
+
+  const safeProducts = products || [];
+
+  const totalValue = safeProducts.reduce((sum, p) => sum + Number(p.price || 0), 0);
+  const promoCount = safeProducts.filter(p => p.isPromo).length;
 
   res.render('home', {
-    products: products.slice(0, 4),
-    stats: { total: products.length, totalValue, promoCount }
+    products: safeProducts.slice(0, 4),
+    stats: {
+      total: safeProducts.length,
+      totalValue,
+      promoCount
+    }
   });
 });
 
 
-// Wishlist / Products listing
-router.get('/wishlist', async (req, res) => {
-  let products = await db.read('products');
-  const categories = await db.read('categories');
+// ===== Wishlist =====
+router.get('/wishlist', requireLogin, async (req, res) => {
+  try {
+    const { search, platform, sort, category } = req.query;
 
-  const { search, platform, sort, category } = req.query;
+    let queryBuilder = supabase
+      .from('products')
+      .select('*')
+      .eq('createdBy', req.session.user.id);
 
-  if (category && category !== 'all') {
-    products = products.filter(p => p.category === category);
+    if (category && category !== 'all') {
+      queryBuilder = queryBuilder.eq('category', category);
+    }
+
+    if (platform) {
+      queryBuilder = queryBuilder.eq('platform', platform);
+    }
+
+    const { data: products, error } = await queryBuilder;
+
+    if (error) {
+      console.error(error);
+    }
+
+    let filteredProducts = products || [];
+
+    // 🔍 search
+    if (search) {
+      const q = search.toLowerCase();
+      filteredProducts = filteredProducts.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q)
+      );
+    }
+
+    // 🔃 sort
+    if (sort === 'price-asc') filteredProducts.sort((a, b) => a.price - b.price);
+    if (sort === 'price-desc') filteredProducts.sort((a, b) => b.price - a.price);
+    if (sort === 'name-asc') filteredProducts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+
+    const { data: categories } = await supabase
+      .from('categories')
+      .select('*');
+
+    res.render('wishlist', {
+      products: filteredProducts,
+      categories: categories || [],
+      query: req.query
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
   }
-
-  if (platform) {
-    products = products.filter(p => p.platform === platform);
-  }
-
-  if (search) {
-    const q = search.toLowerCase();
-    products = products.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      (p.description || '').toLowerCase().includes(q)
-    );
-  }
-
-  if (sort === 'price-asc') products.sort((a, b) => a.price - b.price);
-  if (sort === 'price-desc') products.sort((a, b) => b.price - a.price);
-  if (sort === 'name-asc') products.sort((a, b) => a.name.localeCompare(b.name, 'th'));
-
-  res.render('wishlist', {
-    products,
-    categories,
-    query: req.query
-  });
 });
 
 
-// Product detail
-router.get('/product/:id', async (req, res) => {
-  const products = await db.read('products');
-  const product = products.find(p => p.id === req.params.id);
+// ===== Product Detail (ล็อกเฉพาะเจ้าของ) =====
+router.get('/product/:id', requireLogin, async (req, res) => {
+  const { data: product, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', req.params.id)
+    .eq('createdBy', req.session.user.id) // ✅ กันดูของคนอื่น
+    .single();
 
-  if (!product) {
+  if (error || !product) {
     return res.status(404).render('error', { message: 'ไม่พบสินค้านี้' });
   }
 
@@ -64,32 +114,39 @@ router.get('/product/:id', async (req, res) => {
 });
 
 
-// Log buy click
+// ===== Log Buy =====
 router.post('/product/:id/buy', async (req, res) => {
-  const products = await db.read('products');
-  const product = products.find(p => p.id === req.params.id);
+  const { data: product } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', req.params.id)
+    .single();
 
   if (product) {
-    await db.insert('logs', {
-      id: Date.now().toString(),
-      productId: product.id,
-      productName: product.name,
-      user: req.session.user ? req.session.user.username : 'guest',
-      time: new Date().toISOString()
-    });
+    const { error } = await supabase.from('logs').insert([
+      {
+        id: Date.now().toString(),
+        productId: product.id,
+        productName: product.name,
+        user: req.session.user ? req.session.user.username : 'guest',
+        time: new Date().toISOString()
+      }
+    ]);
+
+    if (error) {
+      console.error('Log error:', error);
+    }
   }
 
   res.json({ ok: true, link: product ? product.link : '#' });
 });
 
 
-// About
+// ===== Static pages =====
 router.get('/about', (req, res) => {
   res.render('about');
 });
 
-
-// Login / Register pages
 router.get('/login', (req, res) => {
   if (req.session.user) return res.redirect('/wishlist');
   res.render('login', { error: null, redirect: req.query.redirect || '/wishlist' });

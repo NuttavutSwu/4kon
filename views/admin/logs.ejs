@@ -1,0 +1,24 @@
+<%- include('../partials/admin_header', { title, activePage }) %>
+
+<div class="admin-page-header">
+  <div>
+    <div class="admin-page-title">Purchase Logs</div>
+    <div class="admin-page-sub"><%= logs.length %> รายการทั้งหมด</div>
+  </div>
+</div>
+
+<div class="admin-table-wrap">
+  <% if (logs.length === 0) { %>
+    <div class="mini-empty" style="padding:3rem">ยังไม่มี Log การซื้อ</div>
+  <% } %>
+  <% logs.forEach(l => { %>
+    <div class="mini-log-row" style="padding:.8rem 1.5rem;display:flex;align-items:center;gap:1rem;border-bottom:1px solid #f0f4f8;font-size:.88rem">
+      <div class="mini-log-dot"></div>
+      <div style="flex:1;font-weight:600;color:#2d3a45"><%= l.productName %></div>
+      <div style="color:#7a8ea0;font-size:.8rem">ผู้ใช้: <strong><%= l.user %></strong></div>
+      <div style="color:#aab8c5;font-size:.78rem"><%= new Date(l.time).toLocaleString('th-TH') %></div>
+    </div>
+  <% }) %>
+</div>
+
+<%- include('../partials/admin_footer') %>

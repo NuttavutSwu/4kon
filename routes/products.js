@@ -159,7 +159,7 @@ router.get('/edit/:id', requireLogin, async (req, res) => {
 
   res.render('product_form', {
     product,
-    categories: categories || [], // ✅ แก้ตรงนี้
+    categories: categories || [], 
     mode: 'edit'
   });
 });
@@ -177,7 +177,7 @@ router.get('/add', requireLogin, async (req, res) => {
 
   res.render('product_form', {
     product: null,
-    categories: categories || [], // ✅ แก้ตรงนี้
+    categories: categories || [], 
     mode: 'add'
   });
 });
