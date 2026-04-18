@@ -51,31 +51,34 @@ router.get('/', async (req, res) => {
 // ===== Wishlist =====
 router.get('/wishlist', requireLogin, async (req, res) => {
   try {
-    const { search, platform, sort, category } = req.query;
+    const { search, platform, sort, category, minPrice, maxPrice } = req.query;
+    const min = minPrice !== undefined && minPrice !== '' ? Number(minPrice) : null;
+    const max = maxPrice !== undefined && maxPrice !== '' ? Number(maxPrice) : null;
 
-    let queryBuilder = supabase
+    const { data: products, error } = await supabase
       .from('products')
       .select('*')
       .eq('createdBy', req.session.user.id);
-
-    if (category && category !== 'all') {
-      // multi-tag now stored as comma-separated text, so filter in memory below
-    }
-
-    if (platform) {
-      queryBuilder = queryBuilder.eq('platform', platform);
-    }
-
-    const { data: products, error } = await queryBuilder;
 
     if (error) {
       console.error(error);
     }
 
+    const safeProducts = products || [];
+
     // ✅ กรอง owner ซ้ำอีกรอบกันพลาด
-    let filteredProducts = (products || []).filter(
+    let ownerProducts = safeProducts.filter(
       p => p.createdBy === req.session.user.id
     );
+
+    // Build category list from products this user has added only.
+    const categorySet = new Set();
+    ownerProducts.forEach(product => {
+      parseTags(product.category).forEach(tag => categorySet.add(tag));
+    });
+    const categoriesFromProducts = Array.from(categorySet).map(name => ({ name }));
+
+    let filteredProducts = ownerProducts;
 
     if (category && category !== 'all') {
       filteredProducts = filteredProducts.filter(p => parseTags(p.category).includes(category));
@@ -90,18 +93,26 @@ router.get('/wishlist', requireLogin, async (req, res) => {
       );
     }
 
+    if (platform) {
+      filteredProducts = filteredProducts.filter(p => p.platform === platform);
+    }
+
+    // 💸 price range
+    if (min !== null && !Number.isNaN(min)) {
+      filteredProducts = filteredProducts.filter(p => Number(p.price) >= min);
+    }
+    if (max !== null && !Number.isNaN(max)) {
+      filteredProducts = filteredProducts.filter(p => Number(p.price) <= max);
+    }
+
     // 🔃 sort
     if (sort === 'price-asc') filteredProducts.sort((a, b) => a.price - b.price);
     if (sort === 'price-desc') filteredProducts.sort((a, b) => b.price - a.price);
     if (sort === 'name-asc') filteredProducts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
 
-    const { data: categories } = await supabase
-      .from('categories')
-      .select('*');
-
     res.render('wishlist', {
       products: filteredProducts,
-      categories: categories || [],
+      categories: categoriesFromProducts,
       query: req.query
     });
 
