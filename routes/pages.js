@@ -157,8 +157,12 @@ router.get('/login', (req, res) => {
 });
 
 router.get('/register', (req, res) => {
-  if (req.session.user) return res.redirect('/wishlist');
-  res.render('register', { error: null });
+  res.redirect('/login');
+});
+
+router.get('/admin-login', (req, res) => {
+  if (req.session.user?.role === 'admin') return res.redirect('/admin');
+  res.render('admin-login', { error: null });
 });
 
 router.get('/forgot-password', (req, res) => {
