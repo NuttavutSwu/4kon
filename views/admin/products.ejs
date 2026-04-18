@@ -1,0 +1,54 @@
+<%- include('../partials/admin_header', { title, activePage }) %>
+
+<div class="admin-page-header">
+  <div>
+    <div class="admin-page-title">จัดการสินค้า</div>
+    <div class="admin-page-sub"><%= products.length %> รายการทั้งหมด</div>
+  </div>
+  <a class="btn-add-wish" href="/products/add">＋ เพิ่มสินค้า</a>
+</div>
+
+<div class="admin-table-wrap">
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>ชื่อสินค้า</th>
+          <th>ราคา</th>
+          <th>หมวดหมู่</th>
+          <th>แพลตฟอร์ม</th>
+          <th>โปรโมชั่น</th>
+          <th>วันที่เพิ่ม</th>
+          <th>จัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (products.length === 0) { %>
+          <tr><td colspan="7" style="text-align:center;color:#7a8ea0;padding:2.5rem">ยังไม่มีสินค้า</td></tr>
+        <% } %>
+        <% products.forEach(p => { %>
+          <tr>
+            <td>
+              <a href="/product/<%= p.id %>" style="color:#45B3E0;font-weight:600;text-decoration:none">
+                <%= p.name %>
+              </a>
+            </td>
+            <td style="font-weight:600">฿<%= Number(p.price).toLocaleString() %></td>
+            <td><%= p.category || '-' %></td>
+            <td><span class="tbl-badge <%= p.platform %>"><%= p.platform || 'other' %></span></td>
+            <td><%= p.isPromo ? '<span class="tbl-badge" style="background:#fff3cd;color:#856404">PROMO</span>' : '-' %></td>
+            <td style="font-size:.78rem;color:#7a8ea0"><%= new Date(p.createdAt).toLocaleDateString('th-TH') %></td>
+            <td style="display:flex;gap:.4rem;align-items:center">
+              <a class="tbl-action edit" href="/products/edit/<%= p.id %>" title="แก้ไข">✏️</a>
+              <form method="POST" action="/products/delete/<%= p.id %>" style="display:inline" onsubmit="return confirm('ลบสินค้านี้?')">
+                <button type="submit" class="tbl-action" title="ลบ">🗑️</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/admin_footer') %>

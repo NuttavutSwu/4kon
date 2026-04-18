@@ -2,24 +2,43 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { requireAdmin } = require('../middleware/auth');
-const db = require('../utils/db');
+const supabase = require('../utils/supabase'); // ✅ เปลี่ยนตรงนี้
 
 // POST Add category (admin only)
-router.post('/add', requireAdmin, (req, res) => {
+router.post('/add', requireAdmin, async (req, res) => {
   const { name } = req.body;
+
   if (!name) return res.redirect('/admin');
-  const categories = db.read('categories');
-  if (!categories.find(c => c.name === name.trim())) {
-    categories.push({ id: uuidv4(), name: name.trim() });
-    db.write('categories', categories);
+
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('*');
+
+  // เช็คว่าซ้ำไหม
+  const exists = categories.find(c => c.name === name.trim());
+
+  if (!exists) {
+    await supabase.from('categories').insert([
+      {
+        id: uuidv4(),
+        name: name.trim()
+      }
+    ]);
   }
+
   res.redirect('/admin');
 });
 
+
 // POST Delete category (admin only)
-router.post('/delete/:id', requireAdmin, (req, res) => {
-  const categories = db.read('categories');
-  db.write('categories', categories.filter(c => c.id !== req.params.id));
+router.post('/delete/:id', requireAdmin, async (req, res) => {
+  const categoryId = req.params.id;
+
+  await supabase
+    .from('categories')
+    .delete()
+    .eq('id', categoryId);
+
   res.redirect('/admin');
 });
 

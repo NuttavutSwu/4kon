@@ -1,0 +1,46 @@
+<%- include('../partials/admin_header', { title, activePage }) %>
+
+<div class="admin-page-header">
+  <div>
+    <div class="admin-page-title">จัดการหมวดหมู่</div>
+    <div class="admin-page-sub"><%= categories.length %> หมวดหมู่</div>
+  </div>
+</div>
+
+<div class="admin-table-wrap" style="margin-bottom:1.5rem">
+  <div class="dash-card-head" style="padding:1.1rem 1.5rem;border-bottom:1px solid #f0f4f8">
+    <h3 style="font-size:.95rem;font-weight:600;color:#2d3a45">เพิ่มหมวดหมู่ใหม่</h3>
+  </div>
+  <div style="padding:1.2rem 1.5rem">
+    <form method="POST" action="/categories/add" style="display:flex;gap:.8rem;flex-wrap:wrap">
+      <input type="text" class="form-input" name="name" placeholder="ชื่อหมวดหมู่ใหม่" style="max-width:280px">
+      <button type="submit" class="btn-add-wish">＋ เพิ่ม</button>
+    </form>
+  </div>
+</div>
+
+<div class="admin-table-wrap">
+  <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>ชื่อหมวดหมู่</th><th>จำนวนสินค้า</th><th>จัดการ</th></tr></thead>
+      <tbody>
+        <% if (categories.length === 0) { %>
+          <tr><td colspan="3" style="text-align:center;color:#7a8ea0;padding:2rem">ยังไม่มีหมวดหมู่</td></tr>
+        <% } %>
+        <% categories.forEach(c => { %>
+          <tr>
+            <td><strong><%= c.name %></strong></td>
+            <td><span class="tbl-badge other"><%= c.count %> รายการ</span></td>
+            <td>
+              <form method="POST" action="/categories/delete/<%= c.id %>" style="display:inline" onsubmit="return confirm('ลบหมวดหมู่นี้?')">
+                <button type="submit" class="tbl-action">🗑️</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/admin_footer') %>

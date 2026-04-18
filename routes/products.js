@@ -2,17 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { requireLogin } = require('../middleware/auth');
-const db = require('../utils/db');
+const supabase = require('../utils/supabase');
 
-// POST Add product
-router.post('/add', requireLogin, (req, res) => {
+// ================== ADD ==================
+router.post('/add', requireLogin, async (req, res) => {
   const { name, price, platform, category, link, description, imgUrl, isPromo } = req.body;
 
   if (!name || !price) {
     return res.redirect('/wishlist?error=missing');
   }
 
-  const products = db.read('products');
   const newProduct = {
     id: uuidv4(),
     name: name.trim(),
@@ -27,36 +26,59 @@ router.post('/add', requireLogin, (req, res) => {
     createdAt: new Date().toISOString()
   };
 
-  products.unshift(newProduct);
-  db.write('products', products);
+  const { error } = await supabase.from('products').insert([newProduct]);
+  if (error) {
+    console.error(error);
+    return res.status(500).send('Error adding product');
+  }
 
-  // Add category if new
+ 
   if (newProduct.category) {
-    const categories = db.read('categories');
-    if (!categories.find(c => c.name === newProduct.category)) {
-      categories.push({ id: uuidv4(), name: newProduct.category });
-      db.write('categories', categories);
+    let query = supabase.from('categories').select('*');
+
+    if (req.session.user.role !== 'admin') {
+      query = query.eq('createdBy', req.session.user.id);
+    }
+
+    const { data: categories } = await query;
+
+    const exists = categories?.find(c => c.name === newProduct.category);
+
+    if (!exists) {
+      await supabase.from('categories').insert([
+        {
+          id: uuidv4(),
+          name: newProduct.category,
+          createdBy: req.session.user.id
+        }
+      ]);
     }
   }
 
   res.redirect('/product/' + newProduct.id);
 });
 
-// POST Edit product
-router.post('/edit/:id', requireLogin, (req, res) => {
+
+// ================== EDIT ==================
+router.post('/edit/:id', requireLogin, async (req, res) => {
   const { name, price, platform, category, link, description, imgUrl, isPromo } = req.body;
-  const products = db.read('products');
-  const idx = products.findIndex(p => p.id === req.params.id);
 
-  if (idx === -1) return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
+  let query = supabase
+    .from('products')
+    .select('*')
+    .eq('id', req.params.id);
 
-  // Only owner or admin can edit
-  if (products[idx].createdBy !== req.session.user.id && req.session.user.role !== 'admin') {
-    return res.status(403).render('error', { message: 'ไม่มีสิทธิ์แก้ไขสินค้านี้' });
+  if (req.session.user.role !== 'admin') {
+    query = query.eq('createdBy', req.session.user.id);
   }
 
-  products[idx] = {
-    ...products[idx],
+  const { data: product } = await query.single();
+
+  if (!product) {
+    return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
+  }
+
+  const updatedProduct = {
     name: name.trim(),
     price: Number(price),
     platform: platform || 'other',
@@ -64,53 +86,107 @@ router.post('/edit/:id', requireLogin, (req, res) => {
     link: link ? link.trim() : '',
     description: description ? description.trim() : '',
     imgUrl: imgUrl ? imgUrl.trim() : '',
-    isPromo: isPromo === 'on',
-    updatedAt: new Date().toISOString()
+    isPromo: isPromo === 'on'
   };
 
-  db.write('products', products);
+  const { error } = await supabase
+    .from('products')
+    .update(updatedProduct)
+    .eq('id', req.params.id);
 
-  // Add category if new
-  if (products[idx].category) {
-    const categories = db.read('categories');
-    if (!categories.find(c => c.name === products[idx].category)) {
-      categories.push({ id: uuidv4(), name: products[idx].category });
-      db.write('categories', categories);
-    }
+  if (error) {
+    console.error(error);
+    return res.status(500).send('Error updating product');
   }
 
   res.redirect('/product/' + req.params.id);
 });
 
-// POST Delete product
-router.post('/delete/:id', requireLogin, (req, res) => {
-  const products = db.read('products');
-  const product = products.find(p => p.id === req.params.id);
 
-  if (!product) return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
+// ================== DELETE ==================
+router.post('/delete/:id', requireLogin, async (req, res) => {
 
-  if (product.createdBy !== req.session.user.id && req.session.user.role !== 'admin') {
-    return res.status(403).render('error', { message: 'ไม่มีสิทธิ์ลบสินค้านี้' });
+  let query = supabase
+    .from('products')
+    .select('*')
+    .eq('id', req.params.id);
+
+  if (req.session.user.role !== 'admin') {
+    query = query.eq('createdBy', req.session.user.id);
   }
 
-  db.write('products', products.filter(p => p.id !== req.params.id));
+  const { data: product } = await query.single();
+
+  if (!product) {
+    return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
+  }
+
+  const { error } = await supabase
+    .from('products')
+    .delete()
+    .eq('id', req.params.id);
+
+  if (error) {
+    console.error(error);
+    return res.status(500).send('Error deleting product');
+  }
+
   res.redirect('/wishlist');
 });
 
-// GET Edit form
-router.get('/edit/:id', requireLogin, (req, res) => {
-  const products = db.read('products');
-  const product = products.find(p => p.id === req.params.id);
-  if (!product) return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
 
-  const categories = db.read('categories');
-  res.render('product_form', { product, categories, mode: 'edit' });
+// ================== GET EDIT FORM ==================
+router.get('/edit/:id', requireLogin, async (req, res) => {
+
+  let query = supabase
+    .from('products')
+    .select('*')
+    .eq('id', req.params.id);
+
+  if (req.session.user.role !== 'admin') {
+    query = query.eq('createdBy', req.session.user.id);
+  }
+
+  const { data: product } = await query.single();
+
+  if (!product) {
+    return res.status(404).render('error', { message: 'ไม่พบสินค้า' });
+  }
+
+  
+  let catQuery = supabase.from('categories').select('*');
+
+  if (req.session.user.role !== 'admin') {
+    catQuery = catQuery.eq('createdBy', req.session.user.id);
+  }
+
+  const { data: categories } = await catQuery;
+
+  res.render('product_form', {
+    product,
+    categories: categories || [],
+    mode: 'edit'
+  });
 });
 
-// GET Add form
-router.get('/add', requireLogin, (req, res) => {
-  const categories = db.read('categories');
-  res.render('product_form', { product: null, categories, mode: 'add' });
+
+// ================== GET ADD FORM ==================
+router.get('/add', requireLogin, async (req, res) => {
+
+  
+  let catQuery = supabase.from('categories').select('*');
+
+  if (req.session.user.role !== 'admin') {
+    catQuery = catQuery.eq('createdBy', req.session.user.id);
+  }
+
+  const { data: categories } = await catQuery;
+
+  res.render('product_form', {
+    product: null,
+    categories: categories || [],
+    mode: 'add'
+  });
 });
 
 module.exports = router;
