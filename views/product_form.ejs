@@ -45,16 +45,21 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label">หมวดหมู่</label>
-      <input type="text" class="form-input" name="category"
-             placeholder="เช่น แฟชั่น, อิเล็กทรอนิกส์"
-             value="<%= product ? (product.category || '') : '' %>"
-             list="catSuggestions">
-      <datalist id="catSuggestions">
-        <% categories.forEach(c => { %>
-          <option value="<%= c.name %>">
-        <% }) %>
-      </datalist>
+      <label class="form-label">Tags</label>
+      <input type="hidden" name="category" id="categoryInput" value="<%= product ? (product.category || '') : '' %>">
+      <div class="tag-builder">
+        <div class="tag-builder-input-row">
+          <input type="text" id="tagInput" class="form-input" placeholder="พิมพ์ tag เช่น แฟชั่น แล้วกด +">
+          <button type="button" class="tag-add-btn" onclick="addTag()">+</button>
+        </div>
+        <datalist id="tagSuggestions">
+          <% categories.forEach(c => { %>
+            <option value="<%= c.name %>"></option>
+          <% }) %>
+        </datalist>
+        <div id="selectedTags" class="selected-tags"></div>
+        <div class="tag-hint">เลือก tag เดิมได้จากรายการ หรือพิมพ์ tag ใหม่แล้วกด +</div>
+      </div>
     </div>
 
     <div class="form-group">
@@ -92,6 +97,56 @@ function previewImage(url) {
     box.innerHTML = '<span style="font-size:3rem">🖼️</span>';
   }
 }
+
+const selectedTags = new Set();
+const tagInput = document.getElementById('tagInput');
+const selectedTagsBox = document.getElementById('selectedTags');
+const categoryInput = document.getElementById('categoryInput');
+
+tagInput.setAttribute('list', 'tagSuggestions');
+
+function syncTagsToInput() {
+  categoryInput.value = Array.from(selectedTags).join(',');
+}
+
+function renderTags() {
+  if (selectedTags.size === 0) {
+    selectedTagsBox.innerHTML = '<span class="tag-empty">ยังไม่มี tag</span>';
+    return;
+  }
+  selectedTagsBox.innerHTML = Array.from(selectedTags).map(tag =>
+    '<span class="tag-chip">' + tag +
+      '<button type="button" onclick="removeTag(\'' + tag.replace(/'/g, "\\'") + '\')">×</button>' +
+    '</span>'
+  ).join('');
+}
+
+function addTag() {
+  const tag = tagInput.value.trim();
+  if (!tag) return;
+  selectedTags.add(tag);
+  tagInput.value = '';
+  syncTagsToInput();
+  renderTags();
+}
+
+function removeTag(tag) {
+  selectedTags.delete(tag);
+  syncTagsToInput();
+  renderTags();
+}
+
+tagInput.addEventListener('keydown', function(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    addTag();
+  }
+});
+
+if (categoryInput.value) {
+  categoryInput.value.split(',').map(tag => tag.trim()).filter(Boolean).forEach(tag => selectedTags.add(tag));
+}
+renderTags();
 </script>
 
 <%- include('partials/footer') %>

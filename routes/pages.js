@@ -3,6 +3,14 @@ const router = express.Router();
 const supabase = require('../utils/supabase');
 const { requireLogin } = require('../middleware/auth');
 
+function parseTags(rawCategory) {
+  if (!rawCategory) return [];
+  return String(rawCategory)
+    .split(',')
+    .map(tag => tag.trim())
+    .filter(Boolean);
+}
+
 // ===== Home =====
 router.get('/', async (req, res) => {
 
@@ -51,7 +59,7 @@ router.get('/wishlist', requireLogin, async (req, res) => {
       .eq('createdBy', req.session.user.id);
 
     if (category && category !== 'all') {
-      queryBuilder = queryBuilder.eq('category', category);
+      // multi-tag now stored as comma-separated text, so filter in memory below
     }
 
     if (platform) {
@@ -68,6 +76,10 @@ router.get('/wishlist', requireLogin, async (req, res) => {
     let filteredProducts = (products || []).filter(
       p => p.createdBy === req.session.user.id
     );
+
+    if (category && category !== 'all') {
+      filteredProducts = filteredProducts.filter(p => parseTags(p.category).includes(category));
+    }
 
     // 🔍 search
     if (search) {
