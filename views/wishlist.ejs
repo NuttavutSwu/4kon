@@ -8,6 +8,8 @@
       <span>🔍</span>
       <input type="text" name="search" placeholder="ค้นหาสินค้า..." value="<%= query.search || '' %>">
     </div>
+    <input class="filter-select" type="number" min="0" name="minPrice" placeholder="ราคาต่ำสุด" value="<%= query.minPrice || '' %>">
+    <input class="filter-select" type="number" min="0" name="maxPrice" placeholder="ราคาสูงสุด" value="<%= query.maxPrice || '' %>">
     <select class="filter-select" name="platform" onchange="this.form.submit()">
       <option value="">ทุกแพลตฟอร์ม</option>
       <option value="shopee" <%= query.platform === 'shopee' ? 'selected' : '' %>>Shopee</option>
@@ -31,12 +33,12 @@
     <aside class="category-sidebar">
       <h3>หมวดหมู่</h3>
       <a class="cat-item <%= !query.category || query.category === 'all' ? 'active' : '' %>"
-         href="/wishlist<%= query.search || query.platform || query.sort ? '?' + new URLSearchParams({search: query.search||'', platform: query.platform||'', sort: query.sort||'', category: 'all'}).toString() : '' %>">
+         href="/wishlist<%= query.search || query.platform || query.sort || query.minPrice || query.maxPrice ? '?' + new URLSearchParams({search: query.search||'', platform: query.platform||'', sort: query.sort||'', minPrice: query.minPrice||'', maxPrice: query.maxPrice||'', category: 'all'}).toString() : '' %>">
         ทั้งหมด
       </a>
       <% categories.forEach(cat => { %>
         <a class="cat-item <%= query.category === cat.name ? 'active' : '' %>"
-           href="/wishlist?category=<%= encodeURIComponent(cat.name) %><%= query.platform ? '&platform=' + query.platform : '' %><%= query.sort ? '&sort=' + query.sort : '' %>">
+           href="/wishlist?category=<%= encodeURIComponent(cat.name) %><%= query.search ? '&search=' + encodeURIComponent(query.search) : '' %><%= query.platform ? '&platform=' + query.platform : '' %><%= query.sort ? '&sort=' + query.sort : '' %><%= query.minPrice ? '&minPrice=' + query.minPrice : '' %><%= query.maxPrice ? '&maxPrice=' + query.maxPrice : '' %>">
           <%= cat.name %>
         </a>
       <% }) %>

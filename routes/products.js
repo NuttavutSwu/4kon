@@ -4,9 +4,19 @@ const { v4: uuidv4 } = require('uuid');
 const { requireLogin } = require('../middleware/auth');
 const supabase = require('../utils/supabase');
 
+function normalizeTags(rawCategory) {
+  if (!rawCategory) return [];
+  return String(rawCategory)
+    .split(',')
+    .map(tag => tag.trim())
+    .filter(Boolean)
+    .filter((tag, idx, arr) => arr.indexOf(tag) === idx);
+}
+
 // ================== ADD ==================
 router.post('/add', requireLogin, async (req, res) => {
   const { name, price, platform, category, link, description, imgUrl, isPromo } = req.body;
+  const tags = normalizeTags(category);
 
   if (!name || !price) {
     return res.redirect('/wishlist?error=missing');
@@ -17,7 +27,7 @@ router.post('/add', requireLogin, async (req, res) => {
     name: name.trim(),
     price: Number(price),
     platform: platform || 'other',
-    category: category ? category.trim() : '',
+    category: tags.join(','),
     link: link ? link.trim() : '',
     description: description ? description.trim() : '',
     imgUrl: imgUrl ? imgUrl.trim() : '',
@@ -32,8 +42,7 @@ router.post('/add', requireLogin, async (req, res) => {
     return res.status(500).send('Error adding product');
   }
 
- 
-  if (newProduct.category) {
+  if (tags.length > 0) {
     let query = supabase.from('categories').select('*');
 
     if (req.session.user.role !== 'admin') {
@@ -41,17 +50,17 @@ router.post('/add', requireLogin, async (req, res) => {
     }
 
     const { data: categories } = await query;
+    const knownTagNames = (categories || []).map(c => c.name);
+    const missingTags = tags.filter(tag => !knownTagNames.includes(tag));
 
-    const exists = categories?.find(c => c.name === newProduct.category);
-
-    if (!exists) {
-      await supabase.from('categories').insert([
-        {
+    if (missingTags.length > 0) {
+      await supabase.from('categories').insert(
+        missingTags.map(tag => ({
           id: uuidv4(),
-          name: newProduct.category,
+          name: tag,
           createdBy: req.session.user.id
-        }
-      ]);
+        }))
+      );
     }
   }
 
@@ -62,6 +71,7 @@ router.post('/add', requireLogin, async (req, res) => {
 // ================== EDIT ==================
 router.post('/edit/:id', requireLogin, async (req, res) => {
   const { name, price, platform, category, link, description, imgUrl, isPromo } = req.body;
+  const tags = normalizeTags(category);
 
   let query = supabase
     .from('products')
@@ -82,7 +92,7 @@ router.post('/edit/:id', requireLogin, async (req, res) => {
     name: name.trim(),
     price: Number(price),
     platform: platform || 'other',
-    category: category ? category.trim() : '',
+    category: tags.join(','),
     link: link ? link.trim() : '',
     description: description ? description.trim() : '',
     imgUrl: imgUrl ? imgUrl.trim() : '',
@@ -97,6 +107,27 @@ router.post('/edit/:id', requireLogin, async (req, res) => {
   if (error) {
     console.error(error);
     return res.status(500).send('Error updating product');
+  }
+
+  if (tags.length > 0) {
+    let queryCategories = supabase.from('categories').select('*');
+    if (req.session.user.role !== 'admin') {
+      queryCategories = queryCategories.eq('createdBy', req.session.user.id);
+    }
+
+    const { data: categories } = await queryCategories;
+    const knownTagNames = (categories || []).map(c => c.name);
+    const missingTags = tags.filter(tag => !knownTagNames.includes(tag));
+
+    if (missingTags.length > 0) {
+      await supabase.from('categories').insert(
+        missingTags.map(tag => ({
+          id: uuidv4(),
+          name: tag,
+          createdBy: req.session.user.id
+        }))
+      );
+    }
   }
 
   res.redirect('/product/' + req.params.id);

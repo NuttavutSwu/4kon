@@ -2,86 +2,94 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const supabase = require('../utils/supabase'); // ✅ เปลี่ยนตรงนี้
+const supabase = require('../utils/supabase');
+
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'admin1234';
 
 // POST Login
 router.post('/login', async (req, res) => {
-  const { username, password, redirect } = req.body;
-
-  const { data: users } = await supabase
-    .from('users')
-    .select('*');
-
-  const user = users.find(u => u.username === username);
-
-  if (!user || !bcrypt.compareSync(password, user.password)) {
-    return res.render('login', {
-      error: 'Username หรือ Password ไม่ถูกต้อง',
-      redirect: redirect || '/wishlist'
-    });
-  }
-
-  req.session.user = {
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    role: user.role_id === 1 ? 'admin' : 'user'
-  };
-
-  if (user.role_id === 1) {
-  return res.redirect('/admin'); // ✅ admin ไป dashboard
-} else {
-  return res.redirect('/wishlist'); // ✅ user ไป wishlist
-}
+  return res.render('login', {
+    error: 'ผู้ใช้ทั่วไปต้องเข้าสู่ระบบด้วย Google เท่านั้น',
+    redirect: '/wishlist'
+  });
 });
 
 
-// POST Register
-router.post('/register', async (req, res) => {
-  const { email, username, password } = req.body;
-
-  if (!email || !username || !password) {
-    return res.render('register', { error: 'กรุณากรอกข้อมูลให้ครบ' });
+router.post('/admin-login', (req, res) => {
+  const { username, password } = req.body;
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    return res.render('admin-login', { error: 'Admin username/password ไม่ถูกต้อง' });
   }
-
-  const { data: users } = await supabase
-    .from('users')
-    .select('*');
-
-  if (users.find(u => u.username === username)) {
-    return res.render('register', { error: 'Username นี้ถูกใช้งานแล้ว' });
-  }
-
-  if (users.find(u => u.email === email)) {
-    return res.render('register', { error: 'Email นี้ถูกใช้งานแล้ว' });
-  }
-
-  const newUser = {
-    id: uuidv4(),
-    username: username.trim(),
-    email: email.trim(),
-    password: bcrypt.hashSync(password, 10),
-    role_id: 2,
-    created_at: new Date().toISOString()
+  req.session.user = {
+    id: 'admin-hardcoded',
+    username: ADMIN_USERNAME,
+    email: 'admin@local',
+    role: 'admin'
   };
+  return res.redirect('/admin');
+});
 
-  const { error } = await supabase
-    .from('users')
-    .insert([newUser]);
+router.get('/google', async (req, res) => {
+  const redirectTo = `${req.protocol}://${req.get('host')}/auth/google/callback`;
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo }
+  });
 
-  if (error) {
+  if (error || !data?.url) {
     console.error(error);
-    return res.render('register', { error: 'สมัครไม่สำเร็จ' });
+    return res.render('login', { error: 'ไม่สามารถเข้าสู่ระบบด้วย Google ได้', redirect: '/wishlist' });
+  }
+  return res.redirect(data.url);
+});
+
+router.get('/google/callback', async (req, res) => {
+  const { code } = req.query;
+  if (!code) {
+    return res.render('login', { error: 'ไม่พบข้อมูลยืนยันจาก Google', redirect: '/wishlist' });
+  }
+
+  const { data: authData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+  if (exchangeError || !authData?.user?.email) {
+    console.error(exchangeError);
+    return res.render('login', { error: 'ยืนยันตัวตน Google ไม่สำเร็จ', redirect: '/wishlist' });
+  }
+
+  const email = authData.user.email.trim().toLowerCase();
+  const { data: users } = await supabase.from('users').select('*');
+  let existingUser = (users || []).find(u => (u.email || '').toLowerCase() === email);
+
+  if (!existingUser) {
+    const baseUsername = authData.user.user_metadata?.name || authData.user.user_metadata?.full_name || email.split('@')[0];
+    const username = ((users || []).some(u => u.username === baseUsername))
+      ? `${baseUsername}${Date.now().toString().slice(-4)}`
+      : baseUsername;
+
+    const newUser = {
+      id: uuidv4(),
+      username,
+      email,
+      password: bcrypt.hashSync(uuidv4(), 10),
+      role_id: 2,
+      created_at: new Date().toISOString()
+    };
+
+    const { error: insertError } = await supabase.from('users').insert([newUser]);
+    if (insertError) {
+      console.error(insertError);
+      return res.render('login', { error: 'สร้างบัญชีผู้ใช้จาก Google ไม่สำเร็จ', redirect: '/wishlist' });
+    }
+    existingUser = newUser;
   }
 
   req.session.user = {
-    id: newUser.id,
-    username: newUser.username,
-    email: newUser.email,
+    id: existingUser.id,
+    username: existingUser.username,
+    email: existingUser.email,
     role: 'user'
   };
-
-  res.redirect('/wishlist');
+  return res.redirect('/wishlist');
 });
 
 
