@@ -71,6 +71,7 @@ router.get('/google/callback', async (req, res) => {
       username,
       email,
       password: bcrypt.hashSync(uuidv4(), 10),
+      role: 'user',
       role_id: 2,
       created_at: new Date().toISOString()
     };
