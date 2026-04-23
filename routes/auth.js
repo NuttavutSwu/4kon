@@ -50,7 +50,7 @@ router.get('/google', async (req, res) => {
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { 
+      options: {
         redirectTo,
         queryParams: { prompt: 'select_account' }
       }
