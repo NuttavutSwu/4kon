@@ -10,6 +10,36 @@ const ADMIN_USER_ID = '00000000-0000-0000-0000-000000000001';
 const ADMIN_SYSTEM_USERNAME = 'admin-system';
 const ADMIN_SYSTEM_EMAIL = 'admin-system@local';
 
+function isLocalHost(value = '') {
+  return /(^|:\/\/)(localhost|127\.0\.0\.1)(:\d+)?$/i.test(String(value));
+}
+
+function resolveBaseUrl(req) {
+  const configuredUrl = (
+    process.env.PUBLIC_APP_URL ||
+    process.env.PRODUCTION_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    ''
+  ).trim();
+
+  if (configuredUrl && !isLocalHost(configuredUrl)) {
+    return configuredUrl.startsWith('http')
+      ? configuredUrl
+      : `https://${configuredUrl}`;
+  }
+
+  const forwardedHost = req.get('x-forwarded-host');
+  const host = forwardedHost || req.get('host');
+  const forwardedProto = req.get('x-forwarded-proto');
+  const protocol = forwardedProto || (isLocalHost(host) ? 'http' : 'https');
+
+  if (host) {
+    return `${protocol}://${host}`;
+  }
+
+  return 'http://localhost:3000';
+}
+
 router.get('/admin-login', (req, res) => {
   res.render('admin-login', { error: null });
 });
@@ -100,15 +130,12 @@ router.post('/admin-login', async (req, res) => {
 // 🔹 GOOGLE LOGIN 
 router.get('/google', async (req, res) => {
   try {
-    const isLocal = req.get('host').includes('localhost');
     const redirectPath = typeof req.query.redirect === 'string' && req.query.redirect.startsWith('/')
       ? req.query.redirect
       : '/';
     const callbackPath = `/login?redirect=${encodeURIComponent(redirectPath)}`;
-
-    const redirectTo = isLocal
-      ? `http://localhost:3000${callbackPath}`
-      : `https://fourkon.onrender.com${callbackPath}`;
+    const baseUrl = resolveBaseUrl(req);
+    const redirectTo = `${baseUrl}${callbackPath}`;
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

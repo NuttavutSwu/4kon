@@ -140,7 +140,9 @@ router.get('/users', requireAdmin, async (req, res) => {
   res.render('admin/users', {
     activePage: 'users',
     title: 'จัดการผู้ใช้งาน',
-    users: users || []
+    users: users || [],
+    notice: typeof req.query.notice === 'string' ? req.query.notice : null,
+    error: typeof req.query.error === 'string' ? req.query.error : null
   });
 });
 
@@ -159,16 +161,77 @@ router.get('/logs', requireAdmin, async (req, res) => {
 
 // ===== Delete User =====
 router.post('/users/delete/:id', requireAdmin, async (req, res) => {
-  if (req.params.id === req.session.user.id) {
-    return res.redirect('/admin/users');
+  const targetUserId = req.params.id;
+
+  if (targetUserId === req.session.user.id) {
+    return res.redirect('/admin/users?error=' + encodeURIComponent('ไม่สามารถลบบัญชีตัวเองได้'));
   }
 
-  await supabase
+  const { data: targetUser, error: targetUserError } = await supabase
+    .from('users')
+    .select('id, role')
+    .eq('id', targetUserId)
+    .maybeSingle();
+
+  if (targetUserError) {
+    console.error('ADMIN DELETE USER LOOKUP ERROR:', targetUserError);
+    return res.redirect('/admin/users?error=' + encodeURIComponent('ไม่สามารถค้นหาบัญชีผู้ใช้ได้'));
+  }
+
+  if (!targetUser) {
+    return res.redirect('/admin/users?error=' + encodeURIComponent('ไม่พบบัญชีผู้ใช้'));
+  }
+
+  if (targetUser.role === 'admin') {
+    return res.redirect('/admin/users?error=' + encodeURIComponent('ไม่สามารถลบบัญชีแอดมินได้'));
+  }
+
+  // Remove dependent rows first so FK constraints won't block deleting user.
+  const dependentTargets = [
+    { table: 'products', column: 'createdBy' },
+    { table: 'categories', column: 'createdBy' }
+  ];
+
+  for (const item of dependentTargets) {
+    const { error } = await supabase
+      .from(item.table)
+      .delete()
+      .eq(item.column, targetUserId);
+
+    if (error) {
+      console.error(`ADMIN DELETE USER DEPENDENCY ERROR (${item.table}):`, error);
+      return res.redirect('/admin/users?error=' + encodeURIComponent('ลบข้อมูลที่เกี่ยวข้องไม่สำเร็จ'));
+    }
+  }
+
+  const { error: deleteUserError } = await supabase
     .from('users')
     .delete()
-    .eq('id', req.params.id);
+    .eq('id', targetUserId)
+    .select('id');
 
-  res.redirect('/admin/users');
+  if (deleteUserError) {
+    console.error('ADMIN DELETE USER ERROR:', deleteUserError);
+    return res.redirect('/admin/users?error=' + encodeURIComponent('ลบผู้ใช้ไม่สำเร็จ'));
+  }
+
+  // Supabase can return no error but delete 0 rows (e.g., blocked by RLS policy).
+  const { data: verifyUserStillExists, error: verifyError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('id', targetUserId)
+    .maybeSingle();
+
+  if (verifyError) {
+    console.error('ADMIN DELETE USER VERIFY ERROR:', verifyError);
+    return res.redirect('/admin/users?error=' + encodeURIComponent('ลบแล้วแต่ตรวจสอบผลลัพธ์ไม่สำเร็จ'));
+  }
+
+  if (verifyUserStillExists) {
+    return res.redirect('/admin/users?error=' + encodeURIComponent('ลบไม่สำเร็จ: ไม่มีสิทธิ์ลบผู้ใช้ (RLS)'));
+  }
+
+  return res.redirect('/admin/users?notice=' + encodeURIComponent('ลบผู้ใช้สำเร็จ'));
 });
 
 module.exports = router;

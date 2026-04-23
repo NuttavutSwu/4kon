@@ -50,6 +50,21 @@ function mergeCategories(savedCategories, products, userId) {
   return [...existing, ...derived].sort((a, b) => a.name.localeCompare(b.name, 'en'));
 }
 
+/**
+ * Compute a safe return URL for redirects after mutations.
+ *
+ * Prefers `?from=/path`, then Referer, then `/wishlist`.
+ *
+ * @param {Object} req
+ * @returns {string}
+ */
+function getReturnTo(req) {
+  const fromQuery = typeof req.query.from === 'string' && req.query.from.startsWith('/')
+    ? req.query.from
+    : null;
+  return fromQuery || req.get('referer') || '/wishlist';
+}
+
 // ================== ADD ==================
 router.post('/add', requireLogin, async (req, res) => {
   const { name, price, platform, category, link, description, imgUrl, isPromo } = req.body;
@@ -173,6 +188,7 @@ router.post('/edit/:id', requireLogin, async (req, res) => {
 
 // ================== DELETE ==================
 router.post('/delete/:id', requireLogin, async (req, res) => {
+  const returnTo = getReturnTo(req);
 
   let query = supabase
     .from('products')
@@ -199,7 +215,7 @@ router.post('/delete/:id', requireLogin, async (req, res) => {
     return res.status(500).send('Error deleting product');
   }
 
-  res.redirect('/wishlist');
+  res.redirect(returnTo);
 });
 
 

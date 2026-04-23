@@ -7,6 +7,17 @@
   </div>
 </div>
 
+<% if (typeof notice !== 'undefined' && notice) { %>
+  <div style="margin:0 0 12px;padding:10px 12px;border:1px solid #2ea043;border-radius:10px;background:#f0fff4;color:#1a7f37;">
+    <%= notice %>
+  </div>
+<% } %>
+<% if (typeof error !== 'undefined' && error) { %>
+  <div style="margin:0 0 12px;padding:10px 12px;border:1px solid #cf222e;border-radius:10px;background:#ffebe9;color:#a40e26;">
+    <%= error %>
+  </div>
+<% } %>
+
 <div class="admin-table-wrap">
   <div style="overflow-x:auto">
     <table>
