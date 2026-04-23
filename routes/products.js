@@ -207,6 +207,7 @@ router.get('/edit/:id', requireLogin, async (req, res) => {
 
   
   let catQuery = supabase.from('categories').select('*');
+  const globalCatQuery = supabase.from('categories').select('name');
   let productCategoriesQuery = supabase.from('products').select('*');
 
   if (req.session.user.role !== 'admin') {
@@ -215,12 +216,19 @@ router.get('/edit/:id', requireLogin, async (req, res) => {
   }
 
   const { data: categories } = await catQuery;
+  const { data: globalCategories } = await globalCatQuery;
   const { data: userProducts } = await productCategoriesQuery;
   const mergedCategories = mergeCategories(categories, userProducts, req.session.user.id);
+  const tagSuggestions = Array.from(new Set(
+    (globalCategories || [])
+      .map((c) => String(c?.name || '').trim())
+      .filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b, 'en'));
 
   res.render('product_form', {
     product,
     categories: mergedCategories,
+    tagSuggestions,
     mode: 'edit'
   });
 });
@@ -231,6 +239,7 @@ router.get('/add', requireLogin, async (req, res) => {
 
   
   let catQuery = supabase.from('categories').select('*');
+  const globalCatQuery = supabase.from('categories').select('name');
   let productCategoriesQuery = supabase.from('products').select('*');
 
   if (req.session.user.role !== 'admin') {
@@ -239,12 +248,19 @@ router.get('/add', requireLogin, async (req, res) => {
   }
 
   const { data: categories } = await catQuery;
+  const { data: globalCategories } = await globalCatQuery;
   const { data: userProducts } = await productCategoriesQuery;
   const mergedCategories = mergeCategories(categories, userProducts, req.session.user.id);
+  const tagSuggestions = Array.from(new Set(
+    (globalCategories || [])
+      .map((c) => String(c?.name || '').trim())
+      .filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b, 'en'));
 
   res.render('product_form', {
     product: null,
     categories: mergedCategories,
+    tagSuggestions,
     mode: 'add'
   });
 });

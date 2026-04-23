@@ -7,6 +7,8 @@ const supabase = require('../utils/supabase');
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin1234';
 const ADMIN_USER_ID = '00000000-0000-0000-0000-000000000001';
+const ADMIN_SYSTEM_USERNAME = 'admin-system';
+const ADMIN_SYSTEM_EMAIL = 'admin-system@local';
 
 router.get('/admin-login', (req, res) => {
   res.render('admin-login', { error: null });
@@ -33,34 +35,47 @@ router.post('/admin-login', async (req, res) => {
     });
   }
 
+  let adminId = null;
   try {
-    const { data: existingAdmin, error: lookupError } = await supabase
+    // Use existing "admin" row if present (avoids unique collisions).
+    const { data: byUsername, error: byUsernameError } = await supabase
       .from('users')
       .select('id')
-      .eq('id', ADMIN_USER_ID)
+      .eq('username', ADMIN_USERNAME)
       .maybeSingle();
 
-    if (lookupError) {
-      throw lookupError;
-    }
-
-    if (!existingAdmin) {
-      const adminUser = {
-        id: ADMIN_USER_ID,
-        username: ADMIN_USERNAME,
-        email: 'admin@local',
-        password: bcrypt.hashSync(uuidv4(), 10),
-        role: 'admin',
-        role_id: 1,
-        created_at: new Date().toISOString()
-      };
-
-      const { error: insertError } = await supabase
+    if (byUsernameError) throw byUsernameError;
+    if (byUsername?.id) {
+      adminId = byUsername.id;
+    } else {
+      // Fallback to our dedicated system user id (may already exist).
+      const { data: byFixedId, error: byFixedIdError } = await supabase
         .from('users')
-        .insert([adminUser]);
+        .select('id')
+        .eq('id', ADMIN_USER_ID)
+        .maybeSingle();
 
-      if (insertError) {
-        throw insertError;
+      if (byFixedIdError) throw byFixedIdError;
+      if (byFixedId?.id) {
+        adminId = byFixedId.id;
+      } else {
+        // Last resort: attempt to create a dedicated system user.
+        const adminUser = {
+          id: ADMIN_USER_ID,
+          username: ADMIN_SYSTEM_USERNAME,
+          email: ADMIN_SYSTEM_EMAIL,
+          password: bcrypt.hashSync(uuidv4(), 10),
+          role: 'admin',
+          role_id: 1,
+          created_at: new Date().toISOString()
+        };
+
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([adminUser]);
+
+        if (insertError) throw insertError;
+        adminId = ADMIN_USER_ID;
       }
     }
   } catch (err) {
@@ -71,7 +86,7 @@ router.post('/admin-login', async (req, res) => {
   }
 
   req.session.user = {
-    id: ADMIN_USER_ID,
+    id: adminId,
     username: ADMIN_USERNAME,
     email: 'admin@local',
     role: 'admin'

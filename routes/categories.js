@@ -20,6 +20,20 @@ function wantsJson(req) {
   return req.query.format === 'json' || accept.includes('application/json');
 }
 
+function redirectWithError(res, returnTo, message) {
+  const base = returnTo || '/wishlist';
+  const joiner = base.includes('?') ? '&' : '?';
+  return res.redirect(base + joiner + 'error=' + encodeURIComponent(message));
+}
+
+function stripTag(raw, deletedName) {
+  const tags = String(raw || '')
+    .split(',')
+    .map(t => t.trim())
+    .filter(Boolean);
+  return tags.filter(t => t !== deletedName).join(',');
+}
+
 router.post('/add', requireLogin, async (req, res) => {
   const returnTo = getReturnTo(req);
   const name = normalizeName(req.body.name);
@@ -65,6 +79,87 @@ router.post('/add', requireLogin, async (req, res) => {
   res.redirect(returnTo);
 });
 
+// Delete by name (works for derived categories too)
+router.post('/delete-name', requireLogin, async (req, res) => {
+  const returnTo = getReturnTo(req);
+  const name = normalizeName(req.body.name || req.query.name);
+
+  if (!name || name.toLowerCase() === 'all' || name.toLowerCase() === 'all items') {
+    if (wantsJson(req)) {
+      return res.status(400).json({ ok: false, error: 'Invalid category name' });
+    }
+    return redirectWithError(res, returnTo, 'ลบหมวดหมู่นี้ไม่ได้');
+  }
+
+  // Validate: each product must keep at least 1 tag.
+  const { data: productsForValidation } = await supabase
+    .from('products')
+    .select('id, name, category')
+    .eq('createdBy', req.session.user.id);
+
+  const wouldBecomeEmpty = (productsForValidation || []).filter((p) => {
+    const tags = String(p.category || '').split(',').map(t => t.trim()).filter(Boolean);
+    return tags.includes(name) && tags.length === 1;
+  });
+
+  if (wouldBecomeEmpty.length > 0) {
+    const message = 'ต้องเหลืออย่างน้อย 1 tag ให้สินค้า';
+    if (wantsJson(req)) {
+      return res.status(400).json({
+        ok: false,
+        error: message,
+        affectedCount: wouldBecomeEmpty.length
+      });
+    }
+    return redirectWithError(res, returnTo, message);
+  }
+
+  // Delete saved category row if it exists
+  if (req.session.user.role !== 'admin') {
+    await supabase
+      .from('categories')
+      .delete()
+      .eq('createdBy', req.session.user.id)
+      .eq('name', name);
+  } else {
+    await supabase
+      .from('categories')
+      .delete()
+      .eq('name', name);
+  }
+
+  // Strip the name from products
+  let productsQuery = supabase
+    .from('products')
+    .select('id, category');
+
+  // Keep scope safe: normal users only their own; admin also only their own wishlist.
+  productsQuery = productsQuery.eq('createdBy', req.session.user.id);
+
+  const { data: allProducts } = await productsQuery;
+
+  if (allProducts && allProducts.length > 0) {
+    const toUpdate = allProducts.filter(p => {
+      const tags = String(p.category || '').split(',').map(t => t.trim()).filter(Boolean);
+      return tags.includes(name);
+    });
+
+    for (const p of toUpdate) {
+      const newTags = stripTag(p.category, name);
+      await supabase
+        .from('products')
+        .update({ category: newTags })
+        .eq('id', p.id);
+    }
+  }
+
+  if (wantsJson(req)) {
+    return res.json({ ok: true, deletedName: name });
+  }
+
+  return res.redirect(returnTo);
+});
+
 router.post('/delete/:id', requireLogin, async (req, res) => {
   const returnTo = getReturnTo(req);
   const categoryId = req.params.id;
@@ -84,7 +179,30 @@ router.post('/delete/:id', requireLogin, async (req, res) => {
     if (wantsJson(req)) {
       return res.status(404).json({ ok: false, error: 'Category not found' });
     }
-    return res.redirect(returnTo);
+    return redirectWithError(res, returnTo, 'ไม่พบหมวดหมู่');
+  }
+
+  // Validate: each product must keep at least 1 tag.
+  const { data: productsForValidation } = await supabase
+    .from('products')
+    .select('id, name, category')
+    .eq('createdBy', req.session.user.id);
+
+  const wouldBecomeEmpty = (productsForValidation || []).filter((p) => {
+    const tags = String(p.category || '').split(',').map(t => t.trim()).filter(Boolean);
+    return tags.includes(category.name) && tags.length === 1;
+  });
+
+  if (wouldBecomeEmpty.length > 0) {
+    const message = 'ต้องเหลืออย่างน้อย 1 tag ให้สินค้า';
+    if (wantsJson(req)) {
+      return res.status(400).json({
+        ok: false,
+        error: message,
+        affectedCount: wouldBecomeEmpty.length
+      });
+    }
+    return redirectWithError(res, returnTo, message);
   }
 
   await supabase
@@ -112,11 +230,7 @@ router.post('/delete/:id', requireLogin, async (req, res) => {
     });
 
     for (const p of toUpdate) {
-      const newTags = String(p.category || '')
-        .split(',')
-        .map(t => t.trim())
-        .filter(t => t && t !== deletedName)
-        .join(',');
+      const newTags = stripTag(p.category, deletedName);
 
       await supabase
         .from('products')

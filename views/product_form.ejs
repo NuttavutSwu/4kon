@@ -53,19 +53,25 @@
           <button type="button" class="tag-add-btn" onclick="addTag()">+</button>
         </div>
         <datalist id="tagSuggestions">
-          <% categories.forEach(c => { %>
-            <option value="<%= c.name %>"></option>
+          <% (tagSuggestions || categories || []).forEach(c => { %>
+            <option value="<%= typeof c === 'string' ? c : c.name %>"></option>
           <% }) %>
         </datalist>
         <div id="selectedTags" class="selected-tags"></div>
-        <% if (categories && categories.length > 0) { %>
+        <% if (mode === 'edit' && categories && categories.length > 0) { %>
           <div class="saved-categories">
             <div class="form-label">Saved Categories</div>
             <div class="saved-category-list" id="savedCategoryList">
               <% categories.forEach(c => { %>
                 <% if (c.derived) { %>
-                  <div class="saved-category-chip">
+                  <div class="saved-category-chip" data-category-name="<%= c.name %>">
                     <span><%= c.name %></span>
+                    <button
+                      type="button"
+                      class="saved-category-delete"
+                      aria-label="Delete <%= c.name %>"
+                      onclick="deleteSavedCategory(null, <%- JSON.stringify(c.name) %>, this)"
+                    >x</button>
                   </div>
                 <% } else { %>
                   <div class="saved-category-chip" data-category-name="<%= c.name %>">
@@ -82,7 +88,6 @@
             </div>
           </div>
         <% } %>
-        <div class="tag-hint">เลือก tag เดิมได้จากรายการ หรือพิมพ์ tag ใหม่แล้วกด +</div>
       </div>
     </div>
 
@@ -186,22 +191,32 @@ function ensureSavedCategoryChip(category) {
 }
 
 async function deleteSavedCategory(categoryId, categoryName, buttonEl) {
-  if (!categoryId) return;
+  if (!categoryName) return;
   if (!confirm('Delete this category?')) return;
 
   try {
-    const response = await fetch(
-      '/categories/delete/' + encodeURIComponent(categoryId)
-        + '?from=' + encodeURIComponent(categoryReturnPath)
-        + '&format=json',
-      {
-        method: 'POST',
-        headers: { 'Accept': 'application/json' }
-      }
-    );
+    const url = categoryId
+      ? ('/categories/delete/' + encodeURIComponent(categoryId))
+      : '/categories/delete-name';
+
+    const response = await fetch(url + '?from=' + encodeURIComponent(categoryReturnPath) + '&format=json', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+      },
+      body: categoryId ? '' : new URLSearchParams({ name: categoryName }).toString()
+    });
 
     if (!response.ok) {
-      throw new Error('Could not delete category');
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (_error) {
+        payload = {};
+      }
+      alert(payload.error || 'Could not delete category right now.');
+      return;
     }
 
     knownCategories.delete(categoryName);

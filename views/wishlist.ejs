@@ -43,6 +43,11 @@
             <form method="POST" action="/categories/delete/<%= cat.id %>?from=%2Fwishlist" class="cat-delete-form" data-confirm="Delete this category?">
               <button type="submit" class="cat-delete-btn" aria-label="Delete <%= cat.name %>">x</button>
             </form>
+          <% } else { %>
+            <form method="POST" action="/categories/delete-name?from=%2Fwishlist" class="cat-delete-form" data-confirm="Delete this category?">
+              <input type="hidden" name="name" value="<%= cat.name %>">
+              <button type="submit" class="cat-delete-btn" aria-label="Delete <%= cat.name %>">x</button>
+            </form>
           <% } %>
         </div>
       <% }) %>
