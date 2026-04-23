@@ -15,10 +15,10 @@ document.addEventListener('click', (e) => {
 function showToast(msg, type = 'success') {
   const container = document.getElementById('toastContainer');
   if (!container) return;
-  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const icons = { success: 'OK', error: 'X', info: 'i' };
   const el = document.createElement('div');
   el.className = `toast ${type !== 'success' ? type : ''}`;
-  el.innerHTML = `<span>${icons[type] || '✅'}</span> ${msg}`;
+  el.innerHTML = `<span>${icons[type] || 'OK'}</span> ${msg}`;
   container.appendChild(el);
   setTimeout(() => el.remove(), 3200);
 }
@@ -38,7 +38,150 @@ document.addEventListener('submit', (e) => {
   }
 });
 
-// กัน declare ซ้ำ
+// ===== FAVORITES =====
+function getWishlistUserId() {
+  return document.body?.dataset?.userId || 'guest';
+}
+
+function getFavoriteStorageKey() {
+  return `starwish:favorites:${getWishlistUserId()}`;
+}
+
+function readFavoriteIds() {
+  try {
+    return JSON.parse(localStorage.getItem(getFavoriteStorageKey()) || '[]');
+  } catch (_err) {
+    return [];
+  }
+}
+
+function writeFavoriteIds(ids) {
+  localStorage.setItem(getFavoriteStorageKey(), JSON.stringify(ids));
+}
+
+function isFavoriteProduct(productId) {
+  return readFavoriteIds().includes(String(productId));
+}
+
+function setFavoriteButtonState(button, isFavorite) {
+  if (!button) return;
+
+  button.dataset.favoriteActive = isFavorite ? 'true' : 'false';
+  button.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
+  button.classList.toggle('is-active', isFavorite);
+
+  const icon = button.querySelector('[data-favorite-icon]');
+  if (icon) icon.textContent = isFavorite ? '★' : '☆';
+
+  const text = button.querySelector('[data-favorite-text]');
+  if (text) text.textContent = isFavorite ? 'Favorited' : 'Favorite';
+
+  const label = button.dataset.favoriteLabel || 'wishlist item';
+  button.setAttribute('aria-label', isFavorite ? `Remove ${label} from favorites` : `Add ${label} to favorites`);
+  button.setAttribute('title', isFavorite ? 'Remove from favorites' : 'Add to favorites');
+}
+
+function syncFavoriteButtons() {
+  document.querySelectorAll('[data-favorite-button]').forEach((button) => {
+    setFavoriteButtonState(button, isFavoriteProduct(button.dataset.productId));
+  });
+}
+
+function syncFavoriteCards() {
+  document.querySelectorAll('[data-product-card]').forEach((card) => {
+    const isFavorite = isFavoriteProduct(card.dataset.productId);
+    card.dataset.favorite = isFavorite ? 'true' : 'false';
+    card.classList.toggle('is-favorite', isFavorite);
+  });
+}
+
+function sortWishlistCards() {
+  const grid = document.querySelector('[data-products-grid]');
+  if (!grid) return;
+
+  const cards = Array.from(grid.querySelectorAll('[data-product-card]'));
+  cards
+    .sort((a, b) => {
+      const aFav = a.dataset.favorite === 'true' ? 1 : 0;
+      const bFav = b.dataset.favorite === 'true' ? 1 : 0;
+      return bFav - aFav;
+    })
+    .forEach((card) => grid.appendChild(card));
+}
+
+function applyFavoritesOnlyFilter() {
+  const toggle = document.querySelector('[data-favorites-toggle]');
+  const emptyState = document.querySelector('[data-favorites-empty]');
+  const showOnlyFavorites = toggle?.dataset.active === 'true';
+
+  let visibleCount = 0;
+  document.querySelectorAll('[data-product-card]').forEach((card) => {
+    const shouldShow = !showOnlyFavorites || card.dataset.favorite === 'true';
+    card.hidden = !shouldShow;
+    if (shouldShow) visibleCount += 1;
+  });
+
+  if (emptyState) {
+    emptyState.hidden = !(showOnlyFavorites && visibleCount === 0);
+  }
+
+  if (toggle) {
+    toggle.setAttribute('aria-pressed', showOnlyFavorites ? 'true' : 'false');
+    toggle.classList.toggle('is-active', showOnlyFavorites);
+    toggle.textContent = showOnlyFavorites ? 'Show All Items' : 'Show Favorites';
+  }
+}
+
+function refreshFavoriteUI() {
+  syncFavoriteButtons();
+  syncFavoriteCards();
+  sortWishlistCards();
+  applyFavoritesOnlyFilter();
+}
+
+function toggleFavorite(productId, options) {
+  const opts = options || {};
+  const productName = opts.productName || 'Item';
+  const ids = new Set(readFavoriteIds());
+  const normalizedId = String(productId);
+
+  if (ids.has(normalizedId)) {
+    ids.delete(normalizedId);
+    writeFavoriteIds(Array.from(ids));
+    refreshFavoriteUI();
+    if (opts.showToast !== false) showToast(`${productName} removed from favorites`, 'info');
+    return false;
+  }
+
+  ids.add(normalizedId);
+  writeFavoriteIds(Array.from(ids));
+  refreshFavoriteUI();
+  if (opts.showToast !== false) showToast(`${productName} added to favorites`);
+  return true;
+}
+
+document.addEventListener('click', (e) => {
+  const favoriteButton = e.target.closest('[data-favorite-button]');
+  if (!favoriteButton) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  toggleFavorite(favoriteButton.dataset.productId, {
+    productName: favoriteButton.dataset.productName
+  });
+});
+
+document.addEventListener('click', (e) => {
+  const favoritesToggle = e.target.closest('[data-favorites-toggle]');
+  if (!favoritesToggle) return;
+
+  e.preventDefault();
+  favoritesToggle.dataset.active = favoritesToggle.dataset.active === 'true' ? 'false' : 'true';
+  applyFavoritesOnlyFilter();
+});
+
+// Guard against redeclaring the client
 if (!window.supabaseClient) {
   window.supabaseClient = window.supabase.createClient(
     'https://bpchdlmfjcbuehrhvkzg.supabase.co',
@@ -50,33 +193,25 @@ var supabase = window.supabaseClient;
 
 async function handleLogout(e) {
   if (e) e.preventDefault();
-  console.log("กำลังออกจากระบบ...");
-  
+
   try {
-    // 1. ล้าง session ใน Supabase (LocalStorage)
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
-    
-    console.log("Supabase SignOut สำเร็จ");
-    
-    // 2. ส่งไปที่ Server เพื่อล้าง Express Session
-    // ใช้ window.location.replace เพื่อไม่ให้ผู้ใช้กด back กลับมาได้
-    window.location.replace('/auth/logout'); 
+    window.location.replace('/auth/logout');
   } catch (err) {
-    console.error("Logout Error:", err);
+    console.error('Logout Error:', err);
     window.location.replace('/auth/logout');
   }
 }
 
 async function handleAuth() {
   const overlay = document.getElementById('auth-loading-overlay');
-  
+
   try {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
-      // 1. รอให้การ Sync กับ Server เสร็จสมบูรณ์
-      const response = await fetch('/auth/sync-user', {
+      await fetch('/auth/sync-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -85,33 +220,27 @@ async function handleAuth() {
         })
       });
 
-      // 2. ถ้าอยู่หน้า Login ให้ไปหน้า Wishlist (หน้าจอยังคงบังอยู่)
       if (window.location.pathname === '/login') {
         window.location.href = '/wishlist';
-        return; // ไม่ต้องปิด overlay เพราะกำลังจะเปลี่ยนหน้า
-      }
-      
-      // 3. ถ้าอยู่หน้า Home และเพิ่ง Sync เสร็จ ให้ Refresh 1 ครั้งเพื่อให้ Header อัปเดต
-      // ตรวจสอบว่าใน Session ของ Browser มีการระบุว่า "เพิ่ง Login" หรือไม่ เพื่อป้องกัน Refresh วนลูป
-      if (!sessionStorage.getItem('wasSynced')) {
-        sessionStorage.setItem('wasSynced', 'true');
-        window.location.reload(); 
         return;
       }
 
+      if (!sessionStorage.getItem('wasSynced')) {
+        sessionStorage.setItem('wasSynced', 'true');
+        window.location.reload();
+        return;
+      }
     } else {
-      // ถ้าไม่มี User และพยายามเข้าหน้า Wishlist
       if (window.location.pathname === '/wishlist') {
         window.location.href = '/login';
         return;
       }
-      // ล้างสถานะ sync เมื่อไม่มี user
+
       sessionStorage.removeItem('wasSynced');
     }
   } catch (err) {
-    console.error("Auth error:", err);
+    console.error('Auth error:', err);
   } finally {
-    // ปิดหน้าจอ Loading เมื่อทุกอย่างเสร็จสิ้น
     if (overlay) {
       overlay.style.opacity = '0';
       setTimeout(() => {
@@ -120,4 +249,9 @@ async function handleAuth() {
     }
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  refreshFavoriteUI();
+});
+
 handleAuth();
