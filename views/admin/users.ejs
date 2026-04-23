@@ -18,6 +18,26 @@
   </div>
 <% } %>
 
+<%
+  function formatSignupDate(rawValue) {
+    if (!rawValue) return '-';
+
+    const directDate = new Date(rawValue);
+    if (!Number.isNaN(directDate.getTime())) {
+      return directDate.toLocaleDateString('th-TH');
+    }
+
+    // Supabase timestamp can be "YYYY-MM-DD HH:mm:ss.SSS" (no timezone).
+    const normalizedText = String(rawValue).trim().replace(' ', 'T');
+    const normalizedDate = new Date(normalizedText);
+    if (!Number.isNaN(normalizedDate.getTime())) {
+      return normalizedDate.toLocaleDateString('th-TH');
+    }
+
+    return '-';
+  }
+%>
+
 <div class="admin-table-wrap">
   <div style="overflow-x:auto">
     <table>
@@ -36,7 +56,7 @@
               </span>
             </td>
             <td style="font-size:.78rem;color:#7a8ea0">
-              <%= signupDateRaw ? new Date(signupDateRaw).toLocaleDateString('th-TH') : '-' %>
+              <%= formatSignupDate(signupDateRaw) %>
             </td>
             <td>
               <% if (u.id !== currentUser.id) { %>
