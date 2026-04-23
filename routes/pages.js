@@ -3,14 +3,6 @@ const router = express.Router();
 const supabase = require('../utils/supabase');
 const { requireLogin } = require('../middleware/auth');
 
-function parseTags(rawCategory) {
-  if (!rawCategory) return [];
-  return String(rawCategory)
-    .split(',')
-    .map(tag => tag.trim())
-    .filter(Boolean);
-}
-
 // ===== Home =====
 router.get('/', async (req, res) => {
 
@@ -51,40 +43,33 @@ router.get('/', async (req, res) => {
 // ===== Wishlist =====
 router.get('/wishlist', requireLogin, async (req, res) => {
   try {
-    const { search, platform, sort, category, minPrice, maxPrice } = req.query;
-    const min = minPrice !== undefined && minPrice !== '' ? Number(minPrice) : null;
-    const max = maxPrice !== undefined && maxPrice !== '' ? Number(maxPrice) : null;
+    const { search, platform, sort, category } = req.query;
 
-    const { data: products, error } = await supabase
+    let queryBuilder = supabase
       .from('products')
       .select('*')
       .eq('createdBy', req.session.user.id);
+
+    if (category && category !== 'all') {
+      queryBuilder = queryBuilder.eq('category', category);
+    }
+
+    if (platform) {
+      queryBuilder = queryBuilder.eq('platform', platform);
+    }
+
+    const { data: products, error } = await queryBuilder;
 
     if (error) {
       console.error(error);
     }
 
-    const safeProducts = products || [];
-
-    // ✅ กรอง owner ซ้ำอีกรอบกันพลาด
-    let ownerProducts = safeProducts.filter(
+    
+    let filteredProducts = (products || []).filter(
       p => p.createdBy === req.session.user.id
     );
 
-    // Build category list from products this user has added only.
-    const categorySet = new Set();
-    ownerProducts.forEach(product => {
-      parseTags(product.category).forEach(tag => categorySet.add(tag));
-    });
-    const categoriesFromProducts = Array.from(categorySet).map(name => ({ name }));
-
-    let filteredProducts = ownerProducts;
-
-    if (category && category !== 'all') {
-      filteredProducts = filteredProducts.filter(p => parseTags(p.category).includes(category));
-    }
-
-    // 🔍 search
+    // search
     if (search) {
       const q = search.toLowerCase();
       filteredProducts = filteredProducts.filter(p =>
@@ -93,26 +78,18 @@ router.get('/wishlist', requireLogin, async (req, res) => {
       );
     }
 
-    if (platform) {
-      filteredProducts = filteredProducts.filter(p => p.platform === platform);
-    }
-
-    // 💸 price range
-    if (min !== null && !Number.isNaN(min)) {
-      filteredProducts = filteredProducts.filter(p => Number(p.price) >= min);
-    }
-    if (max !== null && !Number.isNaN(max)) {
-      filteredProducts = filteredProducts.filter(p => Number(p.price) <= max);
-    }
-
-    // 🔃 sort
+    // sort
     if (sort === 'price-asc') filteredProducts.sort((a, b) => a.price - b.price);
     if (sort === 'price-desc') filteredProducts.sort((a, b) => b.price - a.price);
     if (sort === 'name-asc') filteredProducts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
 
+    const { data: categories } = await supabase
+      .from('categories')
+      .select('*');
+
     res.render('wishlist', {
       products: filteredProducts,
-      categories: categoriesFromProducts,
+      categories: categories || [],
       query: req.query
     });
 
@@ -180,12 +157,8 @@ router.get('/login', (req, res) => {
 });
 
 router.get('/register', (req, res) => {
-  res.redirect('/login');
-});
-
-router.get('/admin-login', (req, res) => {
-  if (req.session.user?.role === 'admin') return res.redirect('/admin');
-  res.render('admin-login', { error: null });
+  if (req.session.user) return res.redirect('/wishlist');
+  res.render('register', { error: null });
 });
 
 router.get('/forgot-password', (req, res) => {
