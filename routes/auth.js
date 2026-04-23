@@ -7,7 +7,9 @@ const supabase = require('../utils/supabase');
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin1234';
 
-
+router.get('/admin-login', (req, res) => {
+  res.render('admin-login', { error: null });
+});
 // 🔹 USER LOGIN
 router.post('/login', async (req, res) => {
   return res.render('login', {
