@@ -156,6 +156,11 @@ router.get('/login', (req, res) => {
   res.render('login', { error: null, redirect: req.query.redirect || '/wishlist' });
 });
 
+router.get('/admin-login', (req, res) => {
+  if (req.session.user?.role === 'admin') return res.redirect('/admin');
+  res.render('admin-login', { error: null });
+});
+
 router.get('/register', (req, res) => {
   if (req.session.user) return res.redirect('/wishlist');
   res.render('register', { error: null });
