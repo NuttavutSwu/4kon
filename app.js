@@ -11,6 +11,7 @@ const adminRoutes = require('./routes/admin');
 const pageRoutes = require('./routes/pages');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // View engine
 app.set('view engine', 'ejs');
@@ -38,7 +39,12 @@ app.use(session({
   secret: 'starwish-secret-key-4kon',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1 day
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production'
+  } // 1 day
 }));
 
 // Make user available in all views
