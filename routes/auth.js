@@ -12,7 +12,7 @@ const ADMIN_PASSWORD = 'admin1234';
 router.post('/login', async (req, res) => {
   return res.render('login', {
     error: 'ผู้ใช้ทั่วไปต้องเข้าสู่ระบบด้วย Google เท่านั้น',
-    redirect: '/wishlist'
+    redirect: '/'
   });
 });
 
@@ -43,10 +43,14 @@ router.post('/admin-login', (req, res) => {
 router.get('/google', async (req, res) => {
   try {
     const isLocal = req.get('host').includes('localhost');
+    const redirectPath = typeof req.query.redirect === 'string' && req.query.redirect.startsWith('/')
+      ? req.query.redirect
+      : '/';
+    const callbackPath = `/login?redirect=${encodeURIComponent(redirectPath)}`;
 
     const redirectTo = isLocal
-      ? 'http://localhost:3000'
-      : 'https://fourkon.onrender.com';
+      ? `http://localhost:3000${callbackPath}`
+      : `https://fourkon.onrender.com${callbackPath}`;
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -71,7 +75,7 @@ router.get('/google', async (req, res) => {
     console.error(err);
     return res.render('login', {
       error: 'เกิดข้อผิดพลาด',
-      redirect: '/wishlist'
+      redirect: '/'
     });
   }
 });

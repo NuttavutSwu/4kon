@@ -18,7 +18,7 @@
         <span class="promo-text">PROMOTION</span>
       <% } %>
       <h1 class="detail-name"><%= product.name %></h1>
-      <div class="detail-price">฿<%= Number(product.price).toLocaleString() %></div>
+      <div class="detail-price">&#3647;<%= Number(product.price).toLocaleString() %></div>
       <% if (product.category) { %>
         <div class="selected-tags">
           <% product.category.split(',').map(tag => tag.trim()).filter(Boolean).forEach(tag => { %>
@@ -43,7 +43,7 @@
           data-favorite-label="<%= product.name %>"
           aria-pressed="false"
         >
-          <span data-favorite-icon>☆</span>
+          <span data-favorite-icon>&star;</span>
           <span data-favorite-text>Favorite</span>
         </button>
         <% if (product.link) { %>
@@ -62,7 +62,7 @@
 
 <script>
 function buyClick(id, link) {
-  fetch('/product/' + id + '/buy', { method: 'POST', headers: {'Content-Type':'application/json'} });
+  fetch('/product/' + id + '/buy', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
   window.open(link, '_blank');
 }
 </script>

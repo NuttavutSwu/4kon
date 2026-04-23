@@ -45,7 +45,7 @@ describe('routes/auth', () => {
       expect.objectContaining({
         provider: 'google',
         options: expect.objectContaining({
-          redirectTo: 'http://localhost:3000'
+          redirectTo: 'http://localhost:3000/login?redirect=%2F'
         })
       })
     );

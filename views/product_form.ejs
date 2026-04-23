@@ -58,6 +58,25 @@
           <% }) %>
         </datalist>
         <div id="selectedTags" class="selected-tags"></div>
+        <% if (categories && categories.length > 0) { %>
+          <div class="saved-categories">
+            <div class="form-label">Saved Categories</div>
+            <div class="saved-category-list" id="savedCategoryList">
+              <% categories.forEach(c => { %>
+                <% if (c.derived) { %>
+                  <div class="saved-category-chip">
+                    <span><%= c.name %></span>
+                  </div>
+                <% } else { %>
+                  <form method="POST" action="/categories/delete/<%= c.id %>?from=<%= encodeURIComponent(mode === 'edit' && product ? '/products/edit/' + product.id : '/products/add') %>" class="saved-category-chip" data-confirm="Delete this category?">
+                    <span><%= c.name %></span>
+                    <button type="submit" class="saved-category-delete" aria-label="Delete <%= c.name %>">x</button>
+                  </form>
+                <% } %>
+              <% }) %>
+            </div>
+          </div>
+        <% } %>
         <div class="tag-hint">เลือก tag เดิมได้จากรายการ หรือพิมพ์ tag ใหม่แล้วกด +</div>
       </div>
     </div>
@@ -102,6 +121,10 @@ const selectedTags = new Set();
 const tagInput = document.getElementById('tagInput');
 const selectedTagsBox = document.getElementById('selectedTags');
 const categoryInput = document.getElementById('categoryInput');
+const tagSuggestions = document.getElementById('tagSuggestions');
+const savedCategoryList = document.getElementById('savedCategoryList');
+const knownCategories = new Set(<%- JSON.stringify((categories || []).map(category => category.name)) %>);
+const categoryReturnPath = <%- JSON.stringify(mode === 'edit' && product ? '/products/edit/' + product.id : '/products/add') %>;
 
 tagInput.setAttribute('list', 'tagSuggestions');
 
@@ -121,9 +144,78 @@ function renderTags() {
   ).join('');
 }
 
-function addTag() {
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function ensureSuggestionOption(tag) {
+  if (!tagSuggestions) return;
+  const exists = Array.from(tagSuggestions.options).some(option => option.value === tag);
+  if (exists) return;
+
+  const option = document.createElement('option');
+  option.value = tag;
+  tagSuggestions.appendChild(option);
+}
+
+function ensureSavedCategoryChip(category) {
+  if (!savedCategoryList || !category || !category.id || category.derived) return;
+  const alreadyExists = Array.from(savedCategoryList.querySelectorAll('[data-category-name]'))
+    .some((chip) => chip.dataset.categoryName === category.name);
+  if (alreadyExists) return;
+
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/categories/delete/' + encodeURIComponent(category.id) + '?from=' + encodeURIComponent(categoryReturnPath);
+  form.className = 'saved-category-chip';
+  form.dataset.confirm = 'Delete this category?';
+  form.dataset.categoryName = category.name;
+  form.innerHTML = '<span>' + escapeHtml(category.name) + '</span><button type="submit" class="saved-category-delete" aria-label="Delete ' + escapeHtml(category.name) + '">x</button>';
+  savedCategoryList.appendChild(form);
+}
+
+async function saveCategoryIfNeeded(tag) {
+  if (!tag || knownCategories.has(tag)) return;
+
+  const response = await fetch('/categories/add?from=' + encodeURIComponent(categoryReturnPath) + '&format=json', {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+    },
+    body: new URLSearchParams({ name: tag }).toString()
+  });
+
+  if (!response.ok) {
+    throw new Error('Could not save category');
+  }
+
+  let payload = {};
+  try {
+    payload = await response.json();
+  } catch (_error) {
+    payload = {};
+  }
+
+  knownCategories.add(tag);
+  ensureSuggestionOption(tag);
+  ensureSavedCategoryChip(payload.category || { id: 'temp-' + tag, name: tag });
+}
+
+async function addTag() {
   const tag = tagInput.value.trim();
   if (!tag) return;
+  try {
+    await saveCategoryIfNeeded(tag);
+  } catch (_error) {
+    alert('Could not save category right now.');
+    return;
+  }
   selectedTags.add(tag);
   tagInput.value = '';
   syncTagsToInput();
