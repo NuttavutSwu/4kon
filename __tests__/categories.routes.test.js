@@ -3,6 +3,10 @@ const request = require('supertest');
 
 jest.mock('../utils/supabase', () => {
   const deleteEq = jest.fn(async () => ({ error: null }));
+  const updateEq = jest.fn(async () => ({ error: null }));
+  const updateBuilder = {
+    eq: updateEq
+  };
   const deleteBuilder = {
     eq: deleteEq
   };
@@ -14,6 +18,13 @@ jest.mock('../utils/supabase', () => {
       eq: jest.fn((field, value) => {
         filters.push({ field, value });
         return query;
+      }),
+      maybeSingle: jest.fn(async () => {
+        let data = rows;
+        for (const filter of filters) {
+          data = data.filter((row) => row[filter.field] === filter.value);
+        }
+        return { data: data[0] || null, error: null };
       }),
       single: jest.fn(async () => {
         let data = rows;
@@ -28,11 +39,13 @@ jest.mock('../utils/supabase', () => {
 
   return {
     __deleteEq: deleteEq,
+    __updateEq: updateEq,
     from: jest.fn((table) => {
       if (table !== 'categories') {
         return {
           select: jest.fn(() => makeSelectQuery([])),
-          delete: jest.fn(() => deleteBuilder)
+          delete: jest.fn(() => deleteBuilder),
+          update: jest.fn(() => updateBuilder)
         };
       }
 
@@ -42,6 +55,7 @@ jest.mock('../utils/supabase', () => {
           { id: 'c2', name: 'home', createdBy: 'u2' }
         ])),
         delete: jest.fn(() => deleteBuilder),
+        update: jest.fn(() => updateBuilder),
         insert: jest.fn(async () => ({ error: null }))
       };
     })
@@ -96,5 +110,35 @@ describe('routes/categories', () => {
     expect(res.status).toBe(302);
     expect(res.headers.location).toBe('/products/add');
     expect(supabase.__deleteEq).toHaveBeenCalledWith('id', 'c1');
+  });
+
+  test('delete-name blocks deletion if it would leave products with zero tags', async () => {
+    // Override products for this test: a single product with exactly one tag "tech".
+    supabase.from.mockImplementationOnce((table) => {
+      if (table === 'products') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => Promise.resolve({
+              data: [{ id: 'p1', name: 'Phone', category: 'tech' }],
+              error: null
+            }))
+          }))
+        };
+      }
+      return supabase.from(table);
+    });
+
+    const app = makeApp();
+
+    const res = await request(app)
+      .post('/categories/delete-name?from=%2Fwishlist&format=json')
+      .set('Accept', 'application/json')
+      .set('x-test-user', JSON.stringify({ id: 'u1', role: 'user' }))
+      .type('form')
+      .send({ name: 'tech' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.ok).toBe(false);
+    expect(res.body.error).toContain('อย่างน้อย 1 tag');
   });
 });
