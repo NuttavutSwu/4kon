@@ -16,7 +16,10 @@ router.post('/login', async (req, res) => {
   });
 });
 
-
+// 🔹 แสดงหน้า ADMIN LOGIN (เพิ่มส่วนนี้เข้าไป)
+router.get('/admin-login', (req, res) => {
+  res.render('admin-login', { error: null });
+});
 // 🔹 ADMIN LOGIN
 router.post('/admin-login', (req, res) => {
   const { username, password } = req.body;

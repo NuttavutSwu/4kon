@@ -7,7 +7,8 @@ function requireLogin(req, res, next) {
 
 function requireAdmin(req, res, next) {
   if (!req.session.user || req.session.user.role !== 'admin') {
-    return res.redirect('/admin-login');
+    // แก้จาก '/admin-login' เป็น '/auth/admin-login'
+    return res.redirect('/auth/admin-login'); 
   }
   next();
 }
