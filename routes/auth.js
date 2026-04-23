@@ -14,7 +14,7 @@ router.get('/admin-login', (req, res) => {
 router.post('/login', async (req, res) => {
   return res.render('login', {
     error: 'ผู้ใช้ทั่วไปต้องเข้าสู่ระบบด้วย Google เท่านั้น',
-    redirect: '/wishlist'
+    redirect: '/'
   });
 });
 
@@ -48,25 +48,30 @@ router.post('/admin-login', (req, res) => {
 router.get('/google', async (req, res) => {
   try {
     const isLocal = req.get('host').includes('localhost');
+    const redirectPath = typeof req.query.redirect === 'string' && req.query.redirect.startsWith('/')
+      ? req.query.redirect
+      : '/';
+    const callbackPath = `/login?redirect=${encodeURIComponent(redirectPath)}`;
 
     const redirectTo = isLocal
-      ? 'http://localhost:3000'
-      : 'https://fourkon.onrender.com';
+      ? `http://localhost:3000${callbackPath}`
+      : `https://fourkon.onrender.com${callbackPath}`;
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo,
-        queryParams: { prompt: 'select_account' }
+        scopes: 'email profile',
+        skipBrowserRedirect: true,
+        queryParams: {
+          prompt: 'select_account',
+          access_type: 'offline'
+        }
       }
     });
 
     if (error || !data?.url) {
-      console.error(error);
-      return res.render('login', {
-        error: 'ไม่สามารถเข้าสู่ระบบด้วย Google ได้',
-        redirect: '/wishlist'
-      });
+      throw error || new Error('Missing Google OAuth URL');
     }
 
     return res.redirect(data.url);
@@ -75,7 +80,7 @@ router.get('/google', async (req, res) => {
     console.error(err);
     return res.render('login', {
       error: 'เกิดข้อผิดพลาด',
-      redirect: '/wishlist'
+      redirect: '/'
     });
   }
 });
@@ -138,9 +143,17 @@ router.post('/sync-user', async (req, res) => {
 
 
 // 🔹 LOGOUT
-router.get('/logout', (req, res) => {
-  req.session.destroy();
-  res.redirect('/');
+router.get('/logout', async (req, res) => {
+  // Sign out from Supabase to clear Google OAuth session
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error('Supabase sign out error:', error);
+  }
+
+  // Destroy local session
+  req.session.destroy(() => {
+    res.redirect('/');
+  });
 });
 
 

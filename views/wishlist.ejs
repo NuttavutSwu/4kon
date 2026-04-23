@@ -1,110 +1,116 @@
 <%- include('partials/header', { title: 'Wishlist' }) %>
 
 <div class="products-page">
-
-  <!-- Toolbar -->
   <form class="products-toolbar" method="GET" action="/wishlist">
+    <input type="hidden" name="favoritesOnly" value="<%= query.favoritesOnly === '1' ? '1' : '0' %>" data-favorites-input>
     <div class="search-bar">
-      <span>🔍</span>
-      <input type="text" name="search" placeholder="ค้นหาสินค้า..." value="<%= query.search || '' %>">
+      <span>Search</span>
+      <input type="text" name="search" placeholder="Search wishlist..." value="<%= query.search || '' %>">
     </div>
-    <input class="filter-select" type="number" min="0" name="minPrice" placeholder="ราคาต่ำสุด" value="<%= query.minPrice || '' %>">
-    <input class="filter-select" type="number" min="0" name="maxPrice" placeholder="ราคาสูงสุด" value="<%= query.maxPrice || '' %>">
+    <input class="filter-select" type="number" min="0" name="minPrice" placeholder="Min price" value="<%= query.minPrice || '' %>">
+    <input class="filter-select" type="number" min="0" name="maxPrice" placeholder="Max price" value="<%= query.maxPrice || '' %>">
     <select class="filter-select" name="platform" onchange="this.form.submit()">
-      <option value="">ทุกแพลตฟอร์ม</option>
+      <option value="">All platforms</option>
       <option value="shopee" <%= query.platform === 'shopee' ? 'selected' : '' %>>Shopee</option>
       <option value="lazada" <%= query.platform === 'lazada' ? 'selected' : '' %>>Lazada</option>
-      <option value="other"  <%= query.platform === 'other'  ? 'selected' : '' %>>อื่นๆ</option>
+      <option value="other" <%= query.platform === 'other' ? 'selected' : '' %>>Other</option>
     </select>
     <select class="filter-select" name="sort" onchange="this.form.submit()">
-      <option value="">เรียงลำดับ</option>
-      <option value="price-asc"  <%= query.sort === 'price-asc'  ? 'selected' : '' %>>ราคา น้อย→มาก</option>
-      <option value="price-desc" <%= query.sort === 'price-desc' ? 'selected' : '' %>>ราคา มาก→น้อย</option>
-      <option value="name-asc"   <%= query.sort === 'name-asc'   ? 'selected' : '' %>>ชื่อ A→Z</option>
+      <option value="">Sort items</option>
+      <option value="price-asc" <%= query.sort === 'price-asc' ? 'selected' : '' %>>Price low to high</option>
+      <option value="price-desc" <%= query.sort === 'price-desc' ? 'selected' : '' %>>Price high to low</option>
+      <option value="name-asc" <%= query.sort === 'name-asc' ? 'selected' : '' %>>Name A-Z</option>
     </select>
-    <button type="submit" class="btn-filter">ค้นหา</button>
-    <% if (currentUser) { %>
-      <a class="btn-add-wish" href="/products/add">＋ เพิ่มสินค้า</a>
-    <% } %>
+    <button type="button" class="btn-filter favorites-filter-btn" data-favorites-toggle data-active="<%= query.favoritesOnly === '1' ? 'true' : 'false' %>" aria-pressed="<%= query.favoritesOnly === '1' ? 'true' : 'false' %>">Show Favorites</button>
+    <button type="submit" class="btn-filter">Search</button>
+    <a class="btn-filter" href="/wishlist">Reset</a>
   </form>
 
   <div class="products-layout">
-    <!-- Category sidebar -->
     <aside class="category-sidebar">
-      <h3>หมวดหมู่</h3>
+      <h3>Categories</h3>
       <a class="cat-item <%= !query.category || query.category === 'all' ? 'active' : '' %>"
-         href="/wishlist<%= query.search || query.platform || query.sort || query.minPrice || query.maxPrice ? '?' + new URLSearchParams({search: query.search||'', platform: query.platform||'', sort: query.sort||'', minPrice: query.minPrice||'', maxPrice: query.maxPrice||'', category: 'all'}).toString() : '' %>">
-        ทั้งหมด
+         href="/wishlist<%= query.search || query.platform || query.sort || query.minPrice || query.maxPrice ? '?' + new URLSearchParams({search: query.search || '', platform: query.platform || '', sort: query.sort || '', minPrice: query.minPrice || '', maxPrice: query.maxPrice || '', category: 'all'}).toString() : '' %>">
+        All Items
       </a>
       <% categories.forEach(cat => { %>
-        <a class="cat-item <%= query.category === cat.name ? 'active' : '' %>"
-           href="/wishlist?category=<%= encodeURIComponent(cat.name) %><%= query.search ? '&search=' + encodeURIComponent(query.search) : '' %><%= query.platform ? '&platform=' + query.platform : '' %><%= query.sort ? '&sort=' + query.sort : '' %><%= query.minPrice ? '&minPrice=' + query.minPrice : '' %><%= query.maxPrice ? '&maxPrice=' + query.maxPrice : '' %>">
-          <%= cat.name %>
-        </a>
+        <div class="cat-item-row">
+          <a class="cat-item <%= query.category === cat.name ? 'active' : '' %>"
+             href="/wishlist?category=<%= encodeURIComponent(cat.name) %><%= query.search ? '&search=' + encodeURIComponent(query.search) : '' %><%= query.platform ? '&platform=' + query.platform : '' %><%= query.sort ? '&sort=' + query.sort : '' %><%= query.minPrice ? '&minPrice=' + query.minPrice : '' %><%= query.maxPrice ? '&maxPrice=' + query.maxPrice : '' %>">
+            <%= cat.name %>
+          </a>
+          <% if (!cat.derived) { %>
+            <form method="POST" action="/categories/delete/<%= cat.id %>?from=%2Fwishlist" class="cat-delete-form" data-confirm="Delete this category?">
+              <button type="submit" class="cat-delete-btn" aria-label="Delete <%= cat.name %>">x</button>
+            </form>
+          <% } %>
+        </div>
       <% }) %>
     </aside>
 
-    <!-- Grid -->
-    <div class="products-grid">
+    <div class="products-grid" data-products-grid>
+      <% if (currentUser) { %>
+        <a class="add-card" href="/products/add" data-nonfavorite-card>
+          <div class="add-card-icon">+</div>
+          <div class="add-card-label">Add<br>Wishlist</div>
+        </a>
+      <% } %>
 
-  <% if (currentUser) { %>
-    <a class="add-card" href="/products/add">
-      <div class="add-card-icon">＋</div>
-      <div class="add-card-label">Add<br>Wishlist</div>
-    </a>
-  <% } %>
+      <% if (products && products.length > 0) { %>
+        <% products.forEach(p => { %>
+          <article class="product-card product-card-shell" data-product-card data-product-id="<%= p.id %>" data-favorite="false">
+            <button
+              type="button"
+              class="favorite-btn"
+              data-favorite-button
+              data-product-id="<%= p.id %>"
+              data-product-name="<%= p.name %>"
+              data-favorite-label="<%= p.name %>"
+              aria-pressed="false"
+            >
+              <span data-favorite-icon>&star;</span>
+            </button>
 
-  <% if (products && products.length > 0) { %>
-  <% products.forEach(p => { %>
+            <a href="/product/<%= p.id %>" class="product-card-link">
+              <div class="product-card-img">
+                <% if (p.imgUrl) { %>
+                  <img src="<%= p.imgUrl %>" alt="<%= p.name %>">
+                <% } else { %>
+                  <div class="no-img">No Image</div>
+                <% } %>
 
-    <a href="/product/<%= p.id %>" class="product-card">
+                <span class="platform-badge <%= p.platform || 'other' %>">
+                  <%= p.platform || 'other' %>
+                </span>
 
-      <!-- image -->
-      <div class="product-card-img">
-        <% if (p.imgUrl) { %>
-          <img src="<%= p.imgUrl %>" alt="<%= p.name %>">
-        <% } else { %>
-          <div class="no-img">🖼️</div>
-        <% } %>
+                <% if (p.isPromo || p.is_promo) { %>
+                  <span class="promo-badge">SALE</span>
+                <% } %>
+              </div>
 
-        <!-- platform badge -->
-        <span class="platform-badge <%= p.platform || 'other' %>">
-          <%= p.platform || 'other' %>
-        </span>
-
-        <!-- promo -->
-        <% if (p.is_promo) { %>
-          <span class="promo-badge">SALE</span>
-        <% } %>
-      </div>
-
-      <!-- body -->
-      <div class="product-card-body">
-        <div class="product-card-name"><%= p.name %></div>
-        <div class="product-card-price">฿<%= p.price %></div>
-        <div class="product-card-desc">
-          <%= p.description ? p.description.substring(0, 60) + '...' : '' %>
+              <div class="product-card-body">
+                <div class="product-card-name"><%= p.name %></div>
+                <div class="product-card-price">&#3647;<%= Number(p.price).toLocaleString() %></div>
+                <div class="product-card-desc">
+                  <%= p.description ? p.description.substring(0, 60) + (p.description.length > 60 ? '...' : '') : '' %>
+                </div>
+              </div>
+            </a>
+          </article>
+        <% }) %>
+      <% } else { %>
+        <div class="empty-state">
+          <div class="empty-icon">Wishlist</div>
+          <h3>No items yet</h3>
+          <p>Start adding products to build your wishlist.</p>
         </div>
+      <% } %>
+
+      <div class="empty-state" data-favorites-empty hidden>
+        <div class="empty-icon">&star;</div>
+        <h3>No favorite items yet</h3>
+        <p>Pick the star on any wishlist card to keep your top items together.</p>
       </div>
-
-    </a>
-
-  <% }) %>
-<% } else { %>
-
-  <div class="empty-state">
-    <div class="empty-icon">📦</div>
-    <h3>ยังไม่มีสินค้า</h3>
-    <p>ลองเพิ่ม wishlist ของคุณดู ✨</p>
-  </div>
-
-<% } %>
-
-
-</div>
-
-
-
     </div>
   </div>
 </div>

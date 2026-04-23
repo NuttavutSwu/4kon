@@ -10,7 +10,7 @@
       <% if (error) { %>
         <div class="form-error"><%= error %></div>
       <% } %>
-      <a class="auth-google-btn" href="/auth/google">Login with Google Gmail</a>
+      <a class="auth-google-btn" href="/auth/google?redirect=<%= encodeURIComponent(redirect || '/wishlist') %>">Login with Google Gmail</a>
       <div class="auth-footer">
         <span>สำหรับผู้ใช้ทั่วไป: เข้าสู่ระบบด้วย Gmail เท่านั้น</span>
       </div>

@@ -1,26 +1,24 @@
 <%- include('partials/header', { title: product.name }) %>
 
 <div class="detail-page">
-  <a class="detail-back" href="/wishlist">← กลับ</a>
+  <a class="detail-back" href="/wishlist">Back to wishlist</a>
 
   <div class="detail-layout">
-    <!-- Image -->
     <div class="detail-img-wrap">
       <% if (product.imgUrl) { %>
         <img src="<%= product.imgUrl %>" alt="<%= product.name %>">
       <% } else { %>
-        <span class="detail-emoji"><%= product.platform === 'shopee' ? '🛍️' : product.platform === 'lazada' ? '📦' : '🔗' %></span>
+        <span class="detail-emoji"><%= product.platform === 'shopee' ? 'Shop' : product.platform === 'lazada' ? 'Bag' : 'Item' %></span>
       <% } %>
     </div>
 
-    <!-- Info -->
     <div class="detail-info">
       <span class="platform-badge <%= product.platform %>"><%= product.platform || 'other' %></span>
       <% if (product.isPromo) { %>
-        <span class="promo-text">🏷️ PROMOTION</span>
+        <span class="promo-text">PROMOTION</span>
       <% } %>
       <h1 class="detail-name"><%= product.name %></h1>
-      <div class="detail-price">฿<%= Number(product.price).toLocaleString() %></div>
+      <div class="detail-price">&#3647;<%= Number(product.price).toLocaleString() %></div>
       <% if (product.category) { %>
         <div class="selected-tags">
           <% product.category.split(',').map(tag => tag.trim()).filter(Boolean).forEach(tag => { %>
@@ -32,17 +30,29 @@
         <div class="detail-desc"><%= product.description %></div>
       <% } %>
       <% if (product.link) { %>
-        <a class="detail-link" href="<%= product.link %>" target="_blank" rel="noopener">🔗 ดูสินค้าต้นทาง</a>
+        <a class="detail-link" href="<%= product.link %>" target="_blank" rel="noopener">Open original product</a>
       <% } %>
 
       <div class="detail-actions">
+        <button
+          type="button"
+          class="btn-favorite-item"
+          data-favorite-button
+          data-product-id="<%= product.id %>"
+          data-product-name="<%= product.name %>"
+          data-favorite-label="<%= product.name %>"
+          aria-pressed="false"
+        >
+          <span data-favorite-icon>&star;</span>
+          <span data-favorite-text>Favorite</span>
+        </button>
         <% if (product.link) { %>
-          <button class="btn-buy" onclick="buyClick('<%= product.id %>', '<%= product.link %>')">🛒 ซื้อเลย</button>
+          <button class="btn-buy" onclick="buyClick('<%= product.id %>', '<%= product.link %>')">Buy Now</button>
         <% } %>
         <% if (currentUser) { %>
-          <a class="btn-edit-item" href="/products/edit/<%= product.id %>">✏️ แก้ไข</a>
-          <form method="POST" action="/products/delete/<%= product.id %>" style="display:inline" onsubmit="return confirm('ลบสินค้านี้?')">
-            <button type="submit" class="btn-delete-item">🗑️ ลบ</button>
+          <a class="btn-edit-item" href="/products/edit/<%= product.id %>">Edit</a>
+          <form method="POST" action="/products/delete/<%= product.id %>" style="display:inline" onsubmit="return confirm('Delete this item?')">
+            <button type="submit" class="btn-delete-item">Delete</button>
           </form>
         <% } %>
       </div>
@@ -52,7 +62,7 @@
 
 <script>
 function buyClick(id, link) {
-  fetch('/product/' + id + '/buy', { method: 'POST', headers: {'Content-Type':'application/json'} });
+  fetch('/product/' + id + '/buy', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
   window.open(link, '_blank');
 }
 </script>
