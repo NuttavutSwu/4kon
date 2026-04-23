@@ -20,6 +20,20 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Normalize duplicate slashes in request URL (e.g. //login -> /login).
+app.use((req, res, next) => {
+  const [rawPath, rawQuery = ''] = String(req.url || '').split('?');
+  const normalizedPath = rawPath.replace(/\/{2,}/g, '/');
+
+  if (normalizedPath !== rawPath) {
+    const normalizedUrl = normalizedPath + (rawQuery ? `?${rawQuery}` : '');
+    return res.redirect(302, normalizedUrl);
+  }
+
+  return next();
+});
+
 app.use(session({
   secret: 'starwish-secret-key-4kon',
   resave: false,
