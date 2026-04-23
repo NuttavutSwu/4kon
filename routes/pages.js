@@ -81,12 +81,7 @@ router.get('/wishlist', requireLogin, async (req, res) => {
 
     if (category && category !== 'all') {
       // Match category name within comma-separated field
-      queryBuilder = queryBuilder.or(
-        `category.eq.${category},` +
-        `category.ilike.${category},%,` +
-        `category.ilike.%\\,${category},` +
-        `category.ilike.%\\,${category},%`
-      );
+      queryBuilder = queryBuilder.ilike('category', `%${category}%`);
     }
 
     if (platform) {
