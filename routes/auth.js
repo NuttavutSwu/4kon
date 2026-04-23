@@ -52,19 +52,20 @@ router.get('/google', async (req, res) => {
       provider: 'google',
       options: {
         redirectTo,
-        queryParams: { prompt: 'select_account' }
+        scopes: 'email profile',
+        skipBrowserRedirect: true,
+        queryParams: {
+          prompt: 'select_account',
+          access_type: 'offline'
+        }
       }
     });
 
-    if (error || !data?.url) {
-      console.error(error);
-      return res.render('login', {
-        error: 'ไม่สามารถเข้าสู่ระบบด้วย Google ได้',
-        redirect: '/wishlist'
-      });
-    }
+    // Force unique state to prevent caching
+    const authUrl = new URL(data.url);
+    authUrl.searchParams.set('state', Date.now().toString());
 
-    return res.redirect(data.url);
+    return res.redirect(authUrl.toString());
 
   } catch (err) {
     console.error(err);
@@ -133,9 +134,17 @@ router.post('/sync-user', async (req, res) => {
 
 
 // 🔹 LOGOUT
-router.get('/logout', (req, res) => {
-  req.session.destroy();
-  res.redirect('/');
+router.get('/logout', async (req, res) => {
+  // Sign out from Supabase to clear Google OAuth session
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error('Supabase sign out error:', error);
+  }
+
+  // Destroy local session
+  req.session.destroy(() => {
+    res.redirect('/');
+  });
 });
 
 
