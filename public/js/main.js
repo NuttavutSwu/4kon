@@ -15,6 +15,7 @@ document.addEventListener('click', (e) => {
 function showToast(msg, type = 'success') {
   const container = document.getElementById('toastContainer');
   if (!container) return;
+
   const icons = { success: 'OK', error: 'X', info: 'i' };
   const el = document.createElement('div');
   el.className = `toast ${type !== 'success' ? type : ''}`;
@@ -23,18 +24,17 @@ function showToast(msg, type = 'success') {
   setTimeout(() => el.remove(), 3200);
 }
 
-// Show toast from query param (e.g. after redirect)
-(function () {
+(function showToastFromQuery() {
   const params = new URLSearchParams(window.location.search);
   if (params.get('success')) showToast(decodeURIComponent(params.get('success')));
   if (params.get('error')) showToast(decodeURIComponent(params.get('error')), 'error');
 })();
 
-// ===== CONFIRM DELETES (extra safety) =====
+// ===== CONFIRM DELETES =====
 document.addEventListener('submit', (e) => {
   const form = e.target;
-  if (form.dataset.confirm) {
-    if (!confirm(form.dataset.confirm)) e.preventDefault();
+  if (form.dataset.confirm && !confirm(form.dataset.confirm)) {
+    e.preventDefault();
   }
 });
 
@@ -49,14 +49,16 @@ function getFavoriteStorageKey() {
 
 function readFavoriteIds() {
   try {
-    return JSON.parse(localStorage.getItem(getFavoriteStorageKey()) || '[]');
+    const raw = localStorage.getItem(getFavoriteStorageKey()) || '[]';
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
   } catch (_err) {
     return [];
   }
 }
 
 function writeFavoriteIds(ids) {
-  localStorage.setItem(getFavoriteStorageKey(), JSON.stringify(ids));
+  localStorage.setItem(getFavoriteStorageKey(), JSON.stringify(ids.map(String)));
 }
 
 function isFavoriteProduct(productId) {
@@ -71,13 +73,16 @@ function setFavoriteButtonState(button, isFavorite) {
   button.classList.toggle('is-active', isFavorite);
 
   const icon = button.querySelector('[data-favorite-icon]');
-  if (icon) icon.textContent = isFavorite ? '★' : '☆';
+  if (icon) icon.innerHTML = isFavorite ? '&starf;' : '&star;';
 
   const text = button.querySelector('[data-favorite-text]');
   if (text) text.textContent = isFavorite ? 'Favorited' : 'Favorite';
 
   const label = button.dataset.favoriteLabel || 'wishlist item';
-  button.setAttribute('aria-label', isFavorite ? `Remove ${label} from favorites` : `Add ${label} to favorites`);
+  button.setAttribute(
+    'aria-label',
+    isFavorite ? `Remove ${label} from favorites` : `Add ${label} to favorites`
+  );
   button.setAttribute('title', isFavorite ? 'Remove from favorites' : 'Add to favorites');
 }
 
@@ -95,9 +100,24 @@ function syncFavoriteCards() {
   });
 }
 
+function isFavoritesOnlyEnabled() {
+  const input = document.querySelector('[data-favorites-input]');
+  return input ? input.value === '1' : false;
+}
+
+function setFavoritesOnlyEnabled(enabled) {
+  const input = document.querySelector('[data-favorites-input]');
+  const toggle = document.querySelector('[data-favorites-toggle]');
+  if (input) input.value = enabled ? '1' : '0';
+  if (toggle) toggle.dataset.active = enabled ? 'true' : 'false';
+}
+
 function sortWishlistCards() {
   const grid = document.querySelector('[data-products-grid]');
   if (!grid) return;
+
+  const hasExplicitSort = new URLSearchParams(window.location.search).get('sort');
+  if (hasExplicitSort || isFavoritesOnlyEnabled()) return;
 
   const cards = Array.from(grid.querySelectorAll('[data-product-card]'));
   cards
@@ -112,12 +132,20 @@ function sortWishlistCards() {
 function applyFavoritesOnlyFilter() {
   const toggle = document.querySelector('[data-favorites-toggle]');
   const emptyState = document.querySelector('[data-favorites-empty]');
-  const showOnlyFavorites = toggle?.dataset.active === 'true';
+  const showOnlyFavorites = isFavoritesOnlyEnabled();
+
+  document.querySelectorAll('[data-nonfavorite-card]').forEach((card) => {
+    card.hidden = showOnlyFavorites;
+    card.style.display = showOnlyFavorites ? 'none' : '';
+  });
 
   let visibleCount = 0;
   document.querySelectorAll('[data-product-card]').forEach((card) => {
-    const shouldShow = !showOnlyFavorites || card.dataset.favorite === 'true';
+    const isFavorite = isFavoriteProduct(card.dataset.productId);
+    card.dataset.favorite = isFavorite ? 'true' : 'false';
+    const shouldShow = !showOnlyFavorites || isFavorite;
     card.hidden = !shouldShow;
+    card.style.display = shouldShow ? '' : 'none';
     if (shouldShow) visibleCount += 1;
   });
 
@@ -128,6 +156,7 @@ function applyFavoritesOnlyFilter() {
   if (toggle) {
     toggle.setAttribute('aria-pressed', showOnlyFavorites ? 'true' : 'false');
     toggle.classList.toggle('is-active', showOnlyFavorites);
+    toggle.dataset.active = showOnlyFavorites ? 'true' : 'false';
     toggle.textContent = showOnlyFavorites ? 'Show All Items' : 'Show Favorites';
   }
 }
@@ -177,11 +206,11 @@ document.addEventListener('click', (e) => {
   if (!favoritesToggle) return;
 
   e.preventDefault();
-  favoritesToggle.dataset.active = favoritesToggle.dataset.active === 'true' ? 'false' : 'true';
+  setFavoritesOnlyEnabled(favoritesToggle.dataset.active !== 'true');
   applyFavoritesOnlyFilter();
 });
 
-// Guard against redeclaring the client
+// ===== SUPABASE =====
 if (!window.supabaseClient) {
   window.supabaseClient = window.supabase.createClient(
     'https://bpchdlmfjcbuehrhvkzg.supabase.co',
@@ -206,12 +235,30 @@ async function handleLogout(e) {
 
 async function handleAuth() {
   const overlay = document.getElementById('auth-loading-overlay');
+  const path = window.location.pathname;
+  const isLoginPage = path === '/login';
+  const loginRedirectTarget = (() => {
+    const candidate = new URLSearchParams(window.location.search).get('redirect');
+    return candidate && candidate.startsWith('/') ? candidate : '/';
+  })();
+  const requiresAuth = path === '/wishlist'
+    || path.startsWith('/product/')
+    || path.startsWith('/products/')
+    || path.startsWith('/admin');
+
+  const hideOverlay = () => {
+    if (!overlay) return;
+    overlay.style.opacity = '0';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+    }, 500);
+  };
 
   try {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
-      await fetch('/auth/sync-user', {
+      const syncPromise = fetch('/auth/sync-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -220,18 +267,25 @@ async function handleAuth() {
         })
       });
 
-      if (window.location.pathname === '/login') {
-        window.location.href = '/wishlist';
+      if (isLoginPage) {
+        await syncPromise;
+        sessionStorage.setItem('wasSynced', 'true');
+        window.location.href = loginRedirectTarget;
         return;
       }
 
-      if (!sessionStorage.getItem('wasSynced')) {
+      if (requiresAuth && !sessionStorage.getItem('wasSynced')) {
+        await syncPromise;
         sessionStorage.setItem('wasSynced', 'true');
         window.location.reload();
         return;
       }
+
+      syncPromise.catch((err) => {
+        console.error('Sync user error:', err);
+      });
     } else {
-      if (window.location.pathname === '/wishlist') {
+      if (requiresAuth) {
         window.location.href = '/login';
         return;
       }
@@ -241,16 +295,20 @@ async function handleAuth() {
   } catch (err) {
     console.error('Auth error:', err);
   } finally {
-    if (overlay) {
-      overlay.style.opacity = '0';
-      setTimeout(() => {
-        overlay.style.display = 'none';
-      }, 500);
-    }
+    hideOverlay();
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (window.location.pathname === '/wishlist') {
+    const navEntries = performance.getEntriesByType ? performance.getEntriesByType('navigation') : [];
+    const navType = navEntries[0]?.type;
+    if (navType === 'reload' && window.location.search) {
+      window.location.replace('/wishlist');
+      return;
+    }
+  }
+
   refreshFavoriteUI();
 });
 

@@ -2,6 +2,7 @@
 
 <div class="products-page">
   <form class="products-toolbar" method="GET" action="/wishlist">
+    <input type="hidden" name="favoritesOnly" value="<%= query.favoritesOnly === '1' ? '1' : '0' %>" data-favorites-input>
     <div class="search-bar">
       <span>Search</span>
       <input type="text" name="search" placeholder="Search wishlist..." value="<%= query.search || '' %>">
@@ -20,8 +21,9 @@
       <option value="price-desc" <%= query.sort === 'price-desc' ? 'selected' : '' %>>Price high to low</option>
       <option value="name-asc" <%= query.sort === 'name-asc' ? 'selected' : '' %>>Name A-Z</option>
     </select>
-    <button type="button" class="btn-filter favorites-filter-btn" data-favorites-toggle data-active="false" aria-pressed="false">Show Favorites</button>
+    <button type="button" class="btn-filter favorites-filter-btn" data-favorites-toggle data-active="<%= query.favoritesOnly === '1' ? 'true' : 'false' %>" aria-pressed="<%= query.favoritesOnly === '1' ? 'true' : 'false' %>">Show Favorites</button>
     <button type="submit" class="btn-filter">Search</button>
+    <a class="btn-filter" href="/wishlist">Reset</a>
     <% if (currentUser) { %>
       <a class="btn-add-wish" href="/products/add">+ Add Item</a>
     <% } %>
@@ -31,7 +33,7 @@
     <aside class="category-sidebar">
       <h3>Categories</h3>
       <a class="cat-item <%= !query.category || query.category === 'all' ? 'active' : '' %>"
-         href="/wishlist<%= query.search || query.platform || query.sort || query.minPrice || query.maxPrice ? '?' + new URLSearchParams({search: query.search||'', platform: query.platform||'', sort: query.sort||'', minPrice: query.minPrice||'', maxPrice: query.maxPrice||'', category: 'all'}).toString() : '' %>">
+         href="/wishlist<%= query.search || query.platform || query.sort || query.minPrice || query.maxPrice ? '?' + new URLSearchParams({search: query.search || '', platform: query.platform || '', sort: query.sort || '', minPrice: query.minPrice || '', maxPrice: query.maxPrice || '', category: 'all'}).toString() : '' %>">
         All Items
       </a>
       <% categories.forEach(cat => { %>
@@ -44,7 +46,7 @@
 
     <div class="products-grid" data-products-grid>
       <% if (currentUser) { %>
-        <a class="add-card" href="/products/add">
+        <a class="add-card" href="/products/add" data-nonfavorite-card>
           <div class="add-card-icon">+</div>
           <div class="add-card-label">Add<br>Wishlist</div>
         </a>
@@ -62,7 +64,7 @@
               data-favorite-label="<%= p.name %>"
               aria-pressed="false"
             >
-              <span data-favorite-icon>☆</span>
+              <span data-favorite-icon>&star;</span>
             </button>
 
             <a href="/product/<%= p.id %>" class="product-card-link">
@@ -84,7 +86,7 @@
 
               <div class="product-card-body">
                 <div class="product-card-name"><%= p.name %></div>
-                <div class="product-card-price">฿<%= Number(p.price).toLocaleString() %></div>
+                <div class="product-card-price">&#3647;<%= Number(p.price).toLocaleString() %></div>
                 <div class="product-card-desc">
                   <%= p.description ? p.description.substring(0, 60) + (p.description.length > 60 ? '...' : '') : '' %>
                 </div>
@@ -101,7 +103,7 @@
       <% } %>
 
       <div class="empty-state" data-favorites-empty hidden>
-        <div class="empty-icon">☆</div>
+        <div class="empty-icon">&star;</div>
         <h3>No favorite items yet</h3>
         <p>Pick the star on any wishlist card to keep your top items together.</p>
       </div>

@@ -58,6 +58,19 @@
           <% }) %>
         </datalist>
         <div id="selectedTags" class="selected-tags"></div>
+        <% if (categories && categories.length > 0) { %>
+          <div class="saved-categories">
+            <div class="form-label">Saved Categories</div>
+            <div class="saved-category-list">
+              <% categories.forEach(c => { %>
+                <form method="POST" action="/categories/delete/<%= c.id %>?from=<%= encodeURIComponent(mode === 'edit' && product ? '/products/edit/' + product.id : '/products/add') %>" class="saved-category-chip" data-confirm="Delete this category?">
+                  <span><%= c.name %></span>
+                  <button type="submit" class="saved-category-delete" aria-label="Delete <%= c.name %>">x</button>
+                </form>
+              <% }) %>
+            </div>
+          </div>
+        <% } %>
         <div class="tag-hint">เลือก tag เดิมได้จากรายการ หรือพิมพ์ tag ใหม่แล้วกด +</div>
       </div>
     </div>

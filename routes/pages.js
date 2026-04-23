@@ -43,7 +43,7 @@ router.get('/', async (req, res) => {
 // ===== Wishlist =====
 router.get('/wishlist', requireLogin, async (req, res) => {
   try {
-    const { search, platform, sort, category } = req.query;
+    const { search, platform, sort, category, minPrice, maxPrice } = req.query;
 
     let queryBuilder = supabase
       .from('products')
@@ -69,6 +69,17 @@ router.get('/wishlist', requireLogin, async (req, res) => {
       p => p.createdBy === req.session.user.id
     );
 
+    const min = Number(minPrice);
+    const max = Number(maxPrice);
+
+    if (!Number.isNaN(min) && minPrice !== '') {
+      filteredProducts = filteredProducts.filter(p => Number(p.price || 0) >= min);
+    }
+
+    if (!Number.isNaN(max) && maxPrice !== '') {
+      filteredProducts = filteredProducts.filter(p => Number(p.price || 0) <= max);
+    }
+
     // search
     if (search) {
       const q = search.toLowerCase();
@@ -83,9 +94,15 @@ router.get('/wishlist', requireLogin, async (req, res) => {
     if (sort === 'price-desc') filteredProducts.sort((a, b) => b.price - a.price);
     if (sort === 'name-asc') filteredProducts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
 
-    const { data: categories } = await supabase
+    let categoriesQuery = supabase
       .from('categories')
       .select('*');
+
+    if (req.session.user.role !== 'admin') {
+      categoriesQuery = categoriesQuery.eq('createdBy', req.session.user.id);
+    }
+
+    const { data: categories } = await categoriesQuery;
 
     res.render('wishlist', {
       products: filteredProducts,
@@ -152,8 +169,8 @@ router.get('/about', (req, res) => {
 });
 
 router.get('/login', (req, res) => {
-  if (req.session.user) return res.redirect('/wishlist');
-  res.render('login', { error: null, redirect: req.query.redirect || '/wishlist' });
+  if (req.session.user) return res.redirect('/');
+  res.render('login', { error: null, redirect: req.query.redirect || '/' });
 });
 
 router.get('/admin-login', (req, res) => {

@@ -542,6 +542,27 @@ select.form-input { cursor: pointer; }
 }
 .tag-empty { color: var(--text-soft); font-size: .88rem; }
 .tag-hint { color: var(--text-soft); font-size: .82rem; }
+.saved-categories { margin-top: .9rem; }
+.saved-category-list { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: .45rem; }
+.saved-category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .35rem .7rem;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--border);
+}
+.saved-category-delete {
+  border: none;
+  background: transparent;
+  color: var(--red);
+  cursor: pointer;
+  font-size: .9rem;
+  line-height: 1;
+  padding: 0;
+}
+.saved-category-delete:hover { color: #c0392b; }
 
 /* ===== ABOUT ===== */
 .about-page { max-width: 1000px; margin: 0 auto; padding: 3rem 2rem; }
