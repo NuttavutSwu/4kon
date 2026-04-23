@@ -237,9 +237,11 @@ async function handleAuth() {
   const overlay = document.getElementById('auth-loading-overlay');
   const path = window.location.pathname;
   const isLoginPage = path === '/login';
+  const urlParams = new URLSearchParams(window.location.search);
+  const oauthCode = urlParams.get('code');
   const hasServerSession = document.body?.dataset?.hasSessionUser === 'true';
   const loginRedirectTarget = (() => {
-    const candidate = new URLSearchParams(window.location.search).get('redirect');
+    const candidate = urlParams.get('redirect');
     return candidate && candidate.startsWith('/') ? candidate : '/';
   })();
   const requiresAuth = path === '/wishlist'
@@ -263,6 +265,20 @@ async function handleAuth() {
   }
 
   try {
+    // Render/Supabase OAuth often returns `?code=...` and requires explicit exchange.
+    if (isLoginPage && oauthCode) {
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(oauthCode);
+      if (exchangeError) {
+        console.error('OAuth code exchange error:', exchangeError);
+      } else {
+        // Clean URL after successful exchange to avoid re-processing code.
+        const cleanUrl = loginRedirectTarget === '/'
+          ? '/login'
+          : `/login?redirect=${encodeURIComponent(loginRedirectTarget)}`;
+        window.history.replaceState({}, '', cleanUrl);
+      }
+    }
+
     const { data: { user } } = requiresAuth || isLoginPage
       ? await supabase.auth.getUser()
       : await Promise.race([
