@@ -81,6 +81,9 @@ router.post('/delete/:id', requireLogin, async (req, res) => {
   const { data: category } = await query.single();
 
   if (!category) {
+    if (wantsJson(req)) {
+      return res.status(404).json({ ok: false, error: 'Category not found' });
+    }
     return res.redirect(returnTo);
   }
 
@@ -120,6 +123,10 @@ router.post('/delete/:id', requireLogin, async (req, res) => {
         .update({ category: newTags })
         .eq('id', p.id);
     }
+  }
+
+  if (wantsJson(req)) {
+    return res.json({ ok: true, deletedId: categoryId, deletedName });
   }
 
   res.redirect(returnTo);

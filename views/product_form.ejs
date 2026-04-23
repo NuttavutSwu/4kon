@@ -68,10 +68,15 @@
                     <span><%= c.name %></span>
                   </div>
                 <% } else { %>
-                  <form method="POST" action="/categories/delete/<%= c.id %>?from=<%= encodeURIComponent(mode === 'edit' && product ? '/products/edit/' + product.id : '/products/add') %>" class="saved-category-chip" data-confirm="Delete this category?">
+                  <div class="saved-category-chip" data-category-name="<%= c.name %>">
                     <span><%= c.name %></span>
-                    <button type="submit" class="saved-category-delete" aria-label="Delete <%= c.name %>">x</button>
-                  </form>
+                    <button
+                      type="button"
+                      class="saved-category-delete"
+                      aria-label="Delete <%= c.name %>"
+                      onclick="deleteSavedCategory(<%- JSON.stringify(c.id) %>, <%- JSON.stringify(c.name) %>, this)"
+                    >x</button>
+                  </div>
                 <% } %>
               <% }) %>
             </div>
@@ -169,14 +174,42 @@ function ensureSavedCategoryChip(category) {
     .some((chip) => chip.dataset.categoryName === category.name);
   if (alreadyExists) return;
 
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = '/categories/delete/' + encodeURIComponent(category.id) + '?from=' + encodeURIComponent(categoryReturnPath);
-  form.className = 'saved-category-chip';
-  form.dataset.confirm = 'Delete this category?';
-  form.dataset.categoryName = category.name;
-  form.innerHTML = '<span>' + escapeHtml(category.name) + '</span><button type="submit" class="saved-category-delete" aria-label="Delete ' + escapeHtml(category.name) + '">x</button>';
-  savedCategoryList.appendChild(form);
+  const chip = document.createElement('div');
+  chip.className = 'saved-category-chip';
+  chip.dataset.categoryName = category.name;
+  chip.innerHTML = '<span>' + escapeHtml(category.name) + '</span><button type="button" class="saved-category-delete" aria-label="Delete ' + escapeHtml(category.name) + '">x</button>';
+  const button = chip.querySelector('button');
+  if (button) {
+    button.addEventListener('click', () => deleteSavedCategory(category.id, category.name, button));
+  }
+  savedCategoryList.appendChild(chip);
+}
+
+async function deleteSavedCategory(categoryId, categoryName, buttonEl) {
+  if (!categoryId) return;
+  if (!confirm('Delete this category?')) return;
+
+  try {
+    const response = await fetch(
+      '/categories/delete/' + encodeURIComponent(categoryId)
+        + '?from=' + encodeURIComponent(categoryReturnPath)
+        + '&format=json',
+      {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Could not delete category');
+    }
+
+    knownCategories.delete(categoryName);
+    const chip = buttonEl ? buttonEl.closest('[data-category-name]') : null;
+    if (chip) chip.remove();
+  } catch (_error) {
+    alert('Could not delete category right now.');
+  }
 }
 
 async function saveCategoryIfNeeded(tag) {

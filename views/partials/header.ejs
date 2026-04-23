@@ -7,7 +7,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
 </head>
-<body data-user-id="<%= currentUser ? currentUser.id : 'guest' %>">
+<body
+  data-user-id="<%= currentUser ? currentUser.id : 'guest' %>"
+  data-has-session-user="<%= currentUser ? 'true' : 'false' %>"
+  data-user-role="<%= currentUser ? currentUser.role : 'guest' %>"
+>
   <div id="auth-loading-overlay" style="
   position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
   background: white; display: flex; flex-direction: column; 

@@ -6,6 +6,7 @@ const supabase = require('../utils/supabase');
 
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin1234';
+const ADMIN_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 router.get('/admin-login', (req, res) => {
   res.render('admin-login', { error: null });
@@ -23,7 +24,7 @@ router.get('/admin-login', (req, res) => {
   res.render('admin-login', { error: null });
 });
 // 🔹 ADMIN LOGIN
-router.post('/admin-login', (req, res) => {
+router.post('/admin-login', async (req, res) => {
   const { username, password } = req.body;
 
   if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
@@ -32,8 +33,45 @@ router.post('/admin-login', (req, res) => {
     });
   }
 
+  try {
+    const { data: existingAdmin, error: lookupError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', ADMIN_USER_ID)
+      .maybeSingle();
+
+    if (lookupError) {
+      throw lookupError;
+    }
+
+    if (!existingAdmin) {
+      const adminUser = {
+        id: ADMIN_USER_ID,
+        username: ADMIN_USERNAME,
+        email: 'admin@local',
+        password: bcrypt.hashSync(uuidv4(), 10),
+        role: 'admin',
+        role_id: 1,
+        created_at: new Date().toISOString()
+      };
+
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert([adminUser]);
+
+      if (insertError) {
+        throw insertError;
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    return res.render('admin-login', {
+      error: 'ไม่สามารถเตรียมบัญชีแอดมินในฐานข้อมูลได้'
+    });
+  }
+
   req.session.user = {
-    id: 'admin-hardcoded',
+    id: ADMIN_USER_ID,
     username: ADMIN_USERNAME,
     email: 'admin@local',
     role: 'admin'

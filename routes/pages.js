@@ -79,10 +79,7 @@ router.get('/wishlist', requireLogin, async (req, res) => {
       .select('*')
       .eq('createdBy', req.session.user.id);
 
-    if (category && category !== 'all') {
-      // Match category name within comma-separated field
-      queryBuilder = queryBuilder.ilike('category', `%${category}%`);
-    }
+    
 
     if (platform) {
       queryBuilder = queryBuilder.eq('platform', platform);
@@ -97,6 +94,17 @@ router.get('/wishlist', requireLogin, async (req, res) => {
     let filteredProducts = (products || []).filter(
       p => p.createdBy === req.session.user.id
     );
+
+    if (category && category !== 'all') {
+      const selected = String(category).trim();
+      filteredProducts = filteredProducts.filter((p) => {
+        const cats = String(p.category || '')
+          .split(',')
+          .map((name) => name.trim())
+          .filter(Boolean);
+        return cats.includes(selected);
+      });
+    }
 
     const min = Number(minPrice);
     const max = Number(maxPrice);
