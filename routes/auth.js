@@ -40,6 +40,12 @@ function resolveBaseUrl(req) {
   return 'http://localhost:3000';
 }
 
+function joinUrl(base, path) {
+  const cleanBase = String(base || '').replace(/\/+$/, '');
+  const cleanPath = String(path || '').startsWith('/') ? String(path) : `/${String(path || '')}`;
+  return `${cleanBase}${cleanPath}`;
+}
+
 router.get('/admin-login', (req, res) => {
   res.render('admin-login', { error: null });
 });
@@ -135,7 +141,7 @@ router.get('/google', async (req, res) => {
       : '/';
     const callbackPath = `/login?redirect=${encodeURIComponent(redirectPath)}`;
     const baseUrl = resolveBaseUrl(req);
-    const redirectTo = `${baseUrl}${callbackPath}`;
+    const redirectTo = joinUrl(baseUrl, callbackPath);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
