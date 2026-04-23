@@ -61,11 +61,11 @@ router.get('/google', async (req, res) => {
       }
     });
 
-    // Force unique state to prevent caching
-    const authUrl = new URL(data.url);
-    authUrl.searchParams.set('state', Date.now().toString());
+    if (error || !data?.url) {
+      throw error || new Error('Missing Google OAuth URL');
+    }
 
-    return res.redirect(authUrl.toString());
+    return res.redirect(data.url);
 
   } catch (err) {
     console.error(err);
