@@ -22,6 +22,36 @@
   <p style="font-family: 'Sarabun', sans-serif; color: #666;">Loading...</p>
 </div>
 
+<script>
+  // Safety: never block public pages on auth checks.
+  (function () {
+    var path = window.location.pathname || '/';
+    var isLoginPage = path === '/login';
+    var requiresAuth = path === '/wishlist'
+      || path.indexOf('/product/') === 0
+      || path.indexOf('/products/') === 0
+      || path.indexOf('/admin') === 0;
+
+    if (requiresAuth || isLoginPage) return;
+
+    function hideOverlayNow() {
+      var overlay = document.getElementById('auth-loading-overlay');
+      if (!overlay) return;
+      overlay.style.opacity = '0';
+      setTimeout(function () { overlay.style.display = 'none'; }, 200);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', hideOverlayNow);
+    } else {
+      hideOverlayNow();
+    }
+
+    // Fallback in case DOMContentLoaded never fires / other JS errors.
+    setTimeout(hideOverlayNow, 600);
+  })();
+</script>
+
 <style>
   @keyframes pulse {
     0% { transform: scale(1); opacity: 1; }

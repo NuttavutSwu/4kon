@@ -255,8 +255,18 @@ async function handleAuth() {
     }, 500);
   };
 
+  // Public pages shouldn't block on Supabase network calls.
+  if (!requiresAuth && !isLoginPage) {
+    hideOverlay();
+  }
+
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = requiresAuth || isLoginPage
+      ? await supabase.auth.getUser()
+      : await Promise.race([
+          supabase.auth.getUser(),
+          new Promise((resolve) => setTimeout(() => resolve({ data: { user: null } }), 400))
+        ]);
 
     if (user) {
       const syncPromise = fetch('/auth/sync-user', {
@@ -297,7 +307,8 @@ async function handleAuth() {
   } catch (err) {
     console.error('Auth error:', err);
   } finally {
-    hideOverlay();
+    // On protected pages, keep overlay until auth completes.
+    if (requiresAuth || isLoginPage) hideOverlay();
   }
 }
 
