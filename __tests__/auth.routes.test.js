@@ -82,6 +82,22 @@ function makeApp(host = 'localhost:3000') {
   return app;
 }
 
+function withEnv(vars, fn) {
+  const previous = {};
+  Object.keys(vars).forEach((key) => {
+    previous[key] = process.env[key];
+    process.env[key] = vars[key];
+  });
+  try {
+    return fn();
+  } finally {
+    Object.keys(vars).forEach((key) => {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    });
+  }
+}
+
 describe('routes/auth', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -267,7 +283,47 @@ describe('routes/auth', () => {
     expect(supabase.__signInWithOAuth).toHaveBeenCalledWith(
       expect.objectContaining({
         options: expect.objectContaining({
-          redirectTo: 'https://fourkon.onrender.com/login?redirect=%2F'
+          redirectTo: 'https://example.com/login?redirect=%2F'
+        })
+      })
+    );
+  });
+
+  test('GET /auth/google ignores localhost env on remote host', async () => {
+    supabase.__signInWithOAuth.mockResolvedValue({
+      data: { url: 'https://accounts.google.com/success' },
+      error: null
+    });
+
+    await withEnv({ PRODUCTION_URL: 'http://localhost:3000' }, async () => {
+      const app = makeApp('my-app.onrender.com');
+      await request(app).get('/auth/google');
+    });
+
+    expect(supabase.__signInWithOAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          redirectTo: 'https://my-app.onrender.com/login?redirect=%2F'
+        })
+      })
+    );
+  });
+
+  test('GET /auth/google uses x-forwarded host and protocol when available', async () => {
+    supabase.__signInWithOAuth.mockResolvedValue({
+      data: { url: 'https://accounts.google.com/success' },
+      error: null
+    });
+    const app = makeApp('internal:10000');
+    await request(app)
+      .get('/auth/google')
+      .set('x-forwarded-host', 'my-app.onrender.com')
+      .set('x-forwarded-proto', 'https');
+
+    expect(supabase.__signInWithOAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          redirectTo: 'https://my-app.onrender.com/login?redirect=%2F'
         })
       })
     );

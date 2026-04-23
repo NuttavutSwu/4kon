@@ -325,7 +325,7 @@ describe('routes/products', () => {
     expect(res.headers.location).toBe('/product/p6');
   });
 
-  test('POST /products/delete/:id redirects to wishlist when success', async () => {
+  test('POST /products/delete/:id redirects to referer when success', async () => {
     supabase.__tables.products.push({
       id: 'p2',
       name: 'Item',
@@ -337,10 +337,23 @@ describe('routes/products', () => {
     const app = makeApp();
     const res = await request(app)
       .post('/products/delete/p2')
+      .set('referer', '/admin/products')
       .set('x-test-user', JSON.stringify({ id: 'u1', role: 'user' }));
 
     expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('/wishlist');
+    expect(res.headers.location).toBe('/admin/products');
+  });
+
+  test('POST /products/delete/:id redirects to from query when provided', async () => {
+    supabase.__tables.products.push({ id: 'p10', name: 'Item', price: 20, createdBy: 'u1', category: 'aa' });
+    const app = makeApp();
+    const res = await request(app)
+      .post('/products/delete/p10?from=%2Fadmin%2Fproducts%3Fpage%3D2')
+      .set('referer', '/wishlist')
+      .set('x-test-user', JSON.stringify({ id: 'u1', role: 'user' }));
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('/admin/products?page=2');
   });
 
   test('POST /products/delete/:id returns 500 when delete fails', async () => {
@@ -397,10 +410,11 @@ describe('routes/products', () => {
     const app = makeApp();
     const res = await request(app)
       .post('/products/delete/p9')
+      .set('referer', '/admin/products')
       .set('x-test-user', JSON.stringify({ id: 'admin-id', role: 'admin' }));
 
     expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('/wishlist');
+    expect(res.headers.location).toBe('/admin/products');
   });
 });
 
