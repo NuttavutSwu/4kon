@@ -6,8 +6,13 @@ const supabase = require('../utils/supabase');
 
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin1234';
+const ADMIN_USER_ID = '00000000-0000-0000-0000-000000000001';
+const ADMIN_SYSTEM_USERNAME = 'admin-system';
+const ADMIN_SYSTEM_EMAIL = 'admin-system@local';
 
-
+router.get('/admin-login', (req, res) => {
+  res.render('admin-login', { error: null });
+});
 // 🔹 USER LOGIN
 router.post('/login', async (req, res) => {
   return res.render('login', {
@@ -16,9 +21,12 @@ router.post('/login', async (req, res) => {
   });
 });
 
-
+// 🔹 แสดงหน้า ADMIN LOGIN (เพิ่มส่วนนี้เข้าไป)
+router.get('/admin-login', (req, res) => {
+  res.render('admin-login', { error: null });
+});
 // 🔹 ADMIN LOGIN
-router.post('/admin-login', (req, res) => {
+router.post('/admin-login', async (req, res) => {
   const { username, password } = req.body;
 
   if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
@@ -27,8 +35,58 @@ router.post('/admin-login', (req, res) => {
     });
   }
 
+  let adminId = null;
+  try {
+    // Use existing "admin" row if present (avoids unique collisions).
+    const { data: byUsername, error: byUsernameError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', ADMIN_USERNAME)
+      .maybeSingle();
+
+    if (byUsernameError) throw byUsernameError;
+    if (byUsername?.id) {
+      adminId = byUsername.id;
+    } else {
+      // Fallback to our dedicated system user id (may already exist).
+      const { data: byFixedId, error: byFixedIdError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', ADMIN_USER_ID)
+        .maybeSingle();
+
+      if (byFixedIdError) throw byFixedIdError;
+      if (byFixedId?.id) {
+        adminId = byFixedId.id;
+      } else {
+        // Last resort: attempt to create a dedicated system user.
+        const adminUser = {
+          id: ADMIN_USER_ID,
+          username: ADMIN_SYSTEM_USERNAME,
+          email: ADMIN_SYSTEM_EMAIL,
+          password: bcrypt.hashSync(uuidv4(), 10),
+          role: 'admin',
+          role_id: 1,
+          created_at: new Date().toISOString()
+        };
+
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([adminUser]);
+
+        if (insertError) throw insertError;
+        adminId = ADMIN_USER_ID;
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    return res.render('admin-login', {
+      error: 'ไม่สามารถเตรียมบัญชีแอดมินในฐานข้อมูลได้'
+    });
+  }
+
   req.session.user = {
-    id: 'admin-hardcoded',
+    id: adminId,
     username: ADMIN_USERNAME,
     email: 'admin@local',
     role: 'admin'

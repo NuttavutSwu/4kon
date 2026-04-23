@@ -3,6 +3,14 @@ const router = express.Router();
 const supabase = require('../utils/supabase');
 const { requireLogin } = require('../middleware/auth');
 
+/**
+ * Collect unique category names from a list of products.
+ *
+ * Products store categories as a comma-separated string in `product.category`.
+ *
+ * @param {Array.<Object>} products
+ * @returns {Array.<string>}
+ */
 function collectCategoryNames(products) {
   return Array.from(new Set(
     (products || [])
@@ -12,6 +20,14 @@ function collectCategoryNames(products) {
   ));
 }
 
+/**
+ * Merge saved categories (from DB) with categories derived from product tags.
+ *
+ * @param {Array.<Object>} savedCategories
+ * @param {Array.<Object>} products
+ * @param {string} userId
+ * @returns {Array.<Object>}
+ */
 function mergeCategories(savedCategories, products, userId) {
   const existing = savedCategories || [];
   const existingNames = new Set(existing.map(category => category.name));
@@ -79,15 +95,7 @@ router.get('/wishlist', requireLogin, async (req, res) => {
       .select('*')
       .eq('createdBy', req.session.user.id);
 
-    if (category && category !== 'all') {
-      // Match category name within comma-separated field
-      queryBuilder = queryBuilder.or(
-        `category.eq.${category},` +
-        `category.ilike.${category},%,` +
-        `category.ilike.%\\,${category},` +
-        `category.ilike.%\\,${category},%`
-      );
-    }
+    
 
     if (platform) {
       queryBuilder = queryBuilder.eq('platform', platform);
@@ -102,6 +110,17 @@ router.get('/wishlist', requireLogin, async (req, res) => {
     let filteredProducts = (products || []).filter(
       p => p.createdBy === req.session.user.id
     );
+
+    if (category && category !== 'all') {
+      const selected = String(category).trim();
+      filteredProducts = filteredProducts.filter((p) => {
+        const cats = String(p.category || '')
+          .split(',')
+          .map((name) => name.trim())
+          .filter(Boolean);
+        return cats.includes(selected);
+      });
+    }
 
     const min = Number(minPrice);
     const max = Number(maxPrice);

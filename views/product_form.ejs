@@ -53,31 +53,41 @@
           <button type="button" class="tag-add-btn" onclick="addTag()">+</button>
         </div>
         <datalist id="tagSuggestions">
-          <% categories.forEach(c => { %>
-            <option value="<%= c.name %>"></option>
+          <% (tagSuggestions || categories || []).forEach(c => { %>
+            <option value="<%= typeof c === 'string' ? c : c.name %>"></option>
           <% }) %>
         </datalist>
         <div id="selectedTags" class="selected-tags"></div>
-        <% if (categories && categories.length > 0) { %>
+        <% if (mode === 'edit' && categories && categories.length > 0) { %>
           <div class="saved-categories">
             <div class="form-label">Saved Categories</div>
             <div class="saved-category-list" id="savedCategoryList">
               <% categories.forEach(c => { %>
                 <% if (c.derived) { %>
-                  <div class="saved-category-chip">
+                  <div class="saved-category-chip" data-category-name="<%= c.name %>">
                     <span><%= c.name %></span>
+                    <button
+                      type="button"
+                      class="saved-category-delete"
+                      aria-label="Delete <%= c.name %>"
+                      onclick="deleteSavedCategory(null, <%- JSON.stringify(c.name) %>, this)"
+                    >x</button>
                   </div>
                 <% } else { %>
-                  <form method="POST" action="/categories/delete/<%= c.id %>?from=<%= encodeURIComponent(mode === 'edit' && product ? '/products/edit/' + product.id : '/products/add') %>" class="saved-category-chip" data-confirm="Delete this category?">
+                  <div class="saved-category-chip" data-category-name="<%= c.name %>">
                     <span><%= c.name %></span>
-                    <button type="submit" class="saved-category-delete" aria-label="Delete <%= c.name %>">x</button>
-                  </form>
+                    <button
+                      type="button"
+                      class="saved-category-delete"
+                      aria-label="Delete <%= c.name %>"
+                      onclick="deleteSavedCategory(<%- JSON.stringify(c.id) %>, <%- JSON.stringify(c.name) %>, this)"
+                    >x</button>
+                  </div>
                 <% } %>
               <% }) %>
             </div>
           </div>
         <% } %>
-        <div class="tag-hint">เลือก tag เดิมได้จากรายการ หรือพิมพ์ tag ใหม่แล้วกด +</div>
       </div>
     </div>
 
@@ -137,11 +147,24 @@ function renderTags() {
     selectedTagsBox.innerHTML = '<span class="tag-empty">ยังไม่มี tag</span>';
     return;
   }
-  selectedTagsBox.innerHTML = Array.from(selectedTags).map(tag =>
-    '<span class="tag-chip">' + tag +
-      '<button type="button" onclick="removeTag(\'' + tag.replace(/'/g, "\\'") + '\')">×</button>' +
-    '</span>'
-  ).join('');
+  selectedTagsBox.innerHTML = '';
+  Array.from(selectedTags).forEach((tag) => {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+
+    const text = document.createElement('span');
+    text.textContent = tag;
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = '×';
+    button.setAttribute('aria-label', 'Remove tag ' + tag);
+    button.addEventListener('click', () => removeTag(tag));
+
+    chip.appendChild(text);
+    chip.appendChild(button);
+    selectedTagsBox.appendChild(chip);
+  });
 }
 
 function escapeHtml(value) {
@@ -169,14 +192,52 @@ function ensureSavedCategoryChip(category) {
     .some((chip) => chip.dataset.categoryName === category.name);
   if (alreadyExists) return;
 
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = '/categories/delete/' + encodeURIComponent(category.id) + '?from=' + encodeURIComponent(categoryReturnPath);
-  form.className = 'saved-category-chip';
-  form.dataset.confirm = 'Delete this category?';
-  form.dataset.categoryName = category.name;
-  form.innerHTML = '<span>' + escapeHtml(category.name) + '</span><button type="submit" class="saved-category-delete" aria-label="Delete ' + escapeHtml(category.name) + '">x</button>';
-  savedCategoryList.appendChild(form);
+  const chip = document.createElement('div');
+  chip.className = 'saved-category-chip';
+  chip.dataset.categoryName = category.name;
+  chip.innerHTML = '<span>' + escapeHtml(category.name) + '</span><button type="button" class="saved-category-delete" aria-label="Delete ' + escapeHtml(category.name) + '">x</button>';
+  const button = chip.querySelector('button');
+  if (button) {
+    button.addEventListener('click', () => deleteSavedCategory(category.id, category.name, button));
+  }
+  savedCategoryList.appendChild(chip);
+}
+
+async function deleteSavedCategory(categoryId, categoryName, buttonEl) {
+  if (!categoryName) return;
+  if (!confirm('Delete this category?')) return;
+
+  try {
+    const url = categoryId
+      ? ('/categories/delete/' + encodeURIComponent(categoryId))
+      : '/categories/delete-name';
+
+    const response = await fetch(url + '?from=' + encodeURIComponent(categoryReturnPath) + '&format=json', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+      },
+      body: categoryId ? '' : new URLSearchParams({ name: categoryName }).toString()
+    });
+
+    if (!response.ok) {
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (_error) {
+        payload = {};
+      }
+      alert(payload.error || 'Could not delete category right now.');
+      return;
+    }
+
+    knownCategories.delete(categoryName);
+    const chip = buttonEl ? buttonEl.closest('[data-category-name]') : null;
+    if (chip) chip.remove();
+  } catch (_error) {
+    alert('Could not delete category right now.');
+  }
 }
 
 async function saveCategoryIfNeeded(tag) {

@@ -237,6 +237,7 @@ async function handleAuth() {
   const overlay = document.getElementById('auth-loading-overlay');
   const path = window.location.pathname;
   const isLoginPage = path === '/login';
+  const hasServerSession = document.body?.dataset?.hasSessionUser === 'true';
   const loginRedirectTarget = (() => {
     const candidate = new URLSearchParams(window.location.search).get('redirect');
     return candidate && candidate.startsWith('/') ? candidate : '/';
@@ -249,13 +250,25 @@ async function handleAuth() {
   const hideOverlay = () => {
     if (!overlay) return;
     overlay.style.opacity = '0';
+    // Prevent transparent overlay from blocking clicks.
+    overlay.style.pointerEvents = 'none';
     setTimeout(() => {
       overlay.style.display = 'none';
     }, 500);
   };
 
+  // Public pages shouldn't block on Supabase network calls.
+  if (!requiresAuth && !isLoginPage) {
+    hideOverlay();
+  }
+
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = requiresAuth || isLoginPage
+      ? await supabase.auth.getUser()
+      : await Promise.race([
+          supabase.auth.getUser(),
+          new Promise((resolve) => setTimeout(() => resolve({ data: { user: null } }), 400))
+        ]);
 
     if (user) {
       const syncPromise = fetch('/auth/sync-user', {
@@ -285,7 +298,8 @@ async function handleAuth() {
         console.error('Sync user error:', err);
       });
     } else {
-      if (requiresAuth) {
+      // Admin (or any server-session user) can access protected pages without Google auth.
+      if (requiresAuth && !hasServerSession) {
         window.location.href = '/login';
         return;
       }
@@ -295,7 +309,8 @@ async function handleAuth() {
   } catch (err) {
     console.error('Auth error:', err);
   } finally {
-    hideOverlay();
+    // On protected pages, keep overlay until auth completes.
+    if (requiresAuth || isLoginPage) hideOverlay();
   }
 }
 

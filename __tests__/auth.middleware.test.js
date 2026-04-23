@@ -41,7 +41,7 @@ describe('middleware/auth', () => {
 
       requireAdmin(req, res, next);
 
-      expect(res.redirect).toHaveBeenCalledWith('/admin-login');
+      expect(res.redirect).toHaveBeenCalledWith('/auth/admin-login');
       expect(next).not.toHaveBeenCalled();
     }
   });
