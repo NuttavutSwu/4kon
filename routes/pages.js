@@ -3,6 +3,29 @@ const router = express.Router();
 const supabase = require('../utils/supabase');
 const { requireLogin } = require('../middleware/auth');
 
+function collectCategoryNames(products) {
+  return Array.from(new Set(
+    (products || [])
+      .flatMap(product => String(product.category || '').split(','))
+      .map(name => name.trim())
+      .filter(Boolean)
+  ));
+}
+
+function mergeCategories(savedCategories, products, userId) {
+  const existing = savedCategories || [];
+  const existingNames = new Set(existing.map(category => category.name));
+  const derived = collectCategoryNames(products)
+    .filter(name => !existingNames.has(name))
+    .map((name, index) => ({
+      id: `derived-${userId || 'user'}-${index}-${name}`,
+      name,
+      derived: true
+    }));
+
+  return [...existing, ...derived].sort((a, b) => a.name.localeCompare(b.name, 'en'));
+}
+
 // ===== Home =====
 router.get('/', async (req, res) => {
 
@@ -45,13 +68,25 @@ router.get('/wishlist', requireLogin, async (req, res) => {
   try {
     const { search, platform, sort, category, minPrice, maxPrice } = req.query;
 
+    // Fetch ALL user products for building the category sidebar
+    const { data: allUserProducts } = await supabase
+      .from('products')
+      .select('*')
+      .eq('createdBy', req.session.user.id);
+
     let queryBuilder = supabase
       .from('products')
       .select('*')
       .eq('createdBy', req.session.user.id);
 
     if (category && category !== 'all') {
-      queryBuilder = queryBuilder.eq('category', category);
+      // Match category name within comma-separated field
+      queryBuilder = queryBuilder.or(
+        `category.eq.${category},` +
+        `category.ilike.${category},%,` +
+        `category.ilike.%\\,${category},` +
+        `category.ilike.%\\,${category},%`
+      );
     }
 
     if (platform) {
@@ -64,7 +99,6 @@ router.get('/wishlist', requireLogin, async (req, res) => {
       console.error(error);
     }
 
-    
     let filteredProducts = (products || []).filter(
       p => p.createdBy === req.session.user.id
     );
@@ -103,10 +137,11 @@ router.get('/wishlist', requireLogin, async (req, res) => {
     }
 
     const { data: categories } = await categoriesQuery;
+    const mergedCategories = mergeCategories(categories, allUserProducts || [], req.session.user.id);
 
     res.render('wishlist', {
       products: filteredProducts,
-      categories: categories || [],
+      categories: mergedCategories,
       query: req.query
     });
 

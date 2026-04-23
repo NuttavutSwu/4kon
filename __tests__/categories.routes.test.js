@@ -70,6 +70,22 @@ describe('routes/categories', () => {
     jest.clearAllMocks();
   });
 
+  test('user can create category via JSON request', async () => {
+    const app = makeApp();
+
+    const res = await request(app)
+      .post('/categories/add?from=%2Fproducts%2Fadd&format=json')
+      .set('Accept', 'application/json')
+      .set('x-test-user', JSON.stringify({ id: 'u1', role: 'user' }))
+      .type('form')
+      .send({ name: 'new-tag' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.created).toBe(true);
+    expect(res.body.category).toEqual(expect.objectContaining({ name: 'new-tag', createdBy: 'u1' }));
+  });
+
   test('user can delete their own category and returns back to product form', async () => {
     const app = makeApp();
 

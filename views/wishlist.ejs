@@ -24,9 +24,6 @@
     <button type="button" class="btn-filter favorites-filter-btn" data-favorites-toggle data-active="<%= query.favoritesOnly === '1' ? 'true' : 'false' %>" aria-pressed="<%= query.favoritesOnly === '1' ? 'true' : 'false' %>">Show Favorites</button>
     <button type="submit" class="btn-filter">Search</button>
     <a class="btn-filter" href="/wishlist">Reset</a>
-    <% if (currentUser) { %>
-      <a class="btn-add-wish" href="/products/add">+ Add Item</a>
-    <% } %>
   </form>
 
   <div class="products-layout">
@@ -37,10 +34,17 @@
         All Items
       </a>
       <% categories.forEach(cat => { %>
-        <a class="cat-item <%= query.category === cat.name ? 'active' : '' %>"
-           href="/wishlist?category=<%= encodeURIComponent(cat.name) %><%= query.search ? '&search=' + encodeURIComponent(query.search) : '' %><%= query.platform ? '&platform=' + query.platform : '' %><%= query.sort ? '&sort=' + query.sort : '' %><%= query.minPrice ? '&minPrice=' + query.minPrice : '' %><%= query.maxPrice ? '&maxPrice=' + query.maxPrice : '' %>">
-          <%= cat.name %>
-        </a>
+        <div class="cat-item-row">
+          <a class="cat-item <%= query.category === cat.name ? 'active' : '' %>"
+             href="/wishlist?category=<%= encodeURIComponent(cat.name) %><%= query.search ? '&search=' + encodeURIComponent(query.search) : '' %><%= query.platform ? '&platform=' + query.platform : '' %><%= query.sort ? '&sort=' + query.sort : '' %><%= query.minPrice ? '&minPrice=' + query.minPrice : '' %><%= query.maxPrice ? '&maxPrice=' + query.maxPrice : '' %>">
+            <%= cat.name %>
+          </a>
+          <% if (!cat.derived) { %>
+            <form method="POST" action="/categories/delete/<%= cat.id %>?from=%2Fwishlist" class="cat-delete-form" data-confirm="Delete this category?">
+              <button type="submit" class="cat-delete-btn" aria-label="Delete <%= cat.name %>">x</button>
+            </form>
+          <% } %>
+        </div>
       <% }) %>
     </aside>
 

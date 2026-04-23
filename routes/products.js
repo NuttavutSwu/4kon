@@ -13,6 +13,27 @@ function normalizeTags(rawCategory) {
     .filter((tag, idx, arr) => arr.indexOf(tag) === idx);
 }
 
+function mergeCategories(savedCategories, products, userId) {
+  const existing = savedCategories || [];
+  const existingNames = new Set(existing.map(category => category.name));
+  const derivedNames = Array.from(new Set(
+    (products || [])
+      .flatMap(product => String(product.category || '').split(','))
+      .map(name => name.trim())
+      .filter(Boolean)
+  ));
+
+  const derived = derivedNames
+    .filter(name => !existingNames.has(name))
+    .map((name, index) => ({
+      id: `derived-${userId || 'user'}-${index}-${name}`,
+      name,
+      derived: true
+    }));
+
+  return [...existing, ...derived].sort((a, b) => a.name.localeCompare(b.name, 'en'));
+}
+
 // ================== ADD ==================
 router.post('/add', requireLogin, async (req, res) => {
   const { name, price, platform, category, link, description, imgUrl, isPromo } = req.body;
@@ -186,16 +207,20 @@ router.get('/edit/:id', requireLogin, async (req, res) => {
 
   
   let catQuery = supabase.from('categories').select('*');
+  let productCategoriesQuery = supabase.from('products').select('*');
 
   if (req.session.user.role !== 'admin') {
     catQuery = catQuery.eq('createdBy', req.session.user.id);
+    productCategoriesQuery = productCategoriesQuery.eq('createdBy', req.session.user.id);
   }
 
   const { data: categories } = await catQuery;
+  const { data: userProducts } = await productCategoriesQuery;
+  const mergedCategories = mergeCategories(categories, userProducts, req.session.user.id);
 
   res.render('product_form', {
     product,
-    categories: categories || [],
+    categories: mergedCategories,
     mode: 'edit'
   });
 });
@@ -206,16 +231,20 @@ router.get('/add', requireLogin, async (req, res) => {
 
   
   let catQuery = supabase.from('categories').select('*');
+  let productCategoriesQuery = supabase.from('products').select('*');
 
   if (req.session.user.role !== 'admin') {
     catQuery = catQuery.eq('createdBy', req.session.user.id);
+    productCategoriesQuery = productCategoriesQuery.eq('createdBy', req.session.user.id);
   }
 
   const { data: categories } = await catQuery;
+  const { data: userProducts } = await productCategoriesQuery;
+  const mergedCategories = mergeCategories(categories, userProducts, req.session.user.id);
 
   res.render('product_form', {
     product: null,
-    categories: categories || [],
+    categories: mergedCategories,
     mode: 'add'
   });
 });
