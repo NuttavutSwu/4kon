@@ -32,7 +32,7 @@
           <% if (currentUser.role === 'admin') { %>
             <a class="user-menu-item" href="/admin">🛠 Admin Panel</a>
           <% } %>
-          <a class="user-menu-item danger" href="/auth/logout">🚪 ออกจากระบบ</a>
+          <a class="user-menu-item danger" onclick="handleLogout(event)">🚪 ออกจากระบบ</a>
         </div>
       </div>
     <% } else { %>

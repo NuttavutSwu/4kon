@@ -48,34 +48,67 @@ if (!window.supabaseClient) {
 
 var supabase = window.supabaseClient;
 
-async function handleAuth() {
-  const { data: { user } } = await supabase.auth.getUser();
-
-  console.log("USER:", user);
-
-  // sync user เข้า DB และ Express Session ก่อนเปลี่ยนหน้า
-  if (user) {
-    await fetch('/auth/sync-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: user.email,
-        name: user.user_metadata?.name
-      })
-    });
-  }
-
-  // ถ้า login แล้ว และอยู่หน้า login → ไป wishlist
-  if (user && window.location.pathname === '/login') {
-    window.location.href = '/wishlist';
-    return;
-  }
-
-  // ถ้ายังไม่ login แต่พยายามเข้า wishlist → เด้ง login
-  if (!user && window.location.pathname === '/wishlist') {
-    window.location.href = '/login';
-    return;
+async function handleLogout(e) {
+  if (e) e.preventDefault();
+  console.log("กำลังออกจากระบบ...");
+  
+  try {
+    // 1. ล้าง session ใน Supabase (LocalStorage)
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    
+    console.log("Supabase SignOut สำเร็จ");
+    
+    // 2. ส่งไปที่ Server เพื่อล้าง Express Session
+    // ใช้ window.location.replace เพื่อไม่ให้ผู้ใช้กด back กลับมาได้
+    window.location.replace('/auth/logout'); 
+  } catch (err) {
+    console.error("Logout Error:", err);
+    window.location.replace('/auth/logout');
   }
 }
 
+async function handleAuth() {
+  console.log("กำลังตรวจสอบสถานะการเข้าสู่ระบบ...");
+  
+  // ตรวจสอบว่า Supabase มองเห็น User ไหม
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error) {
+    console.log("ไม่พบ User หรือ Session หมดอายุ");
+  }
+
+  if (user) {
+    console.log("พบ User ใน Supabase:", user.email);
+    
+    // Sync ข้อมูลกับ Server
+    try {
+      const response = await fetch('/auth/sync-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          name: user.user_metadata?.name
+        })
+      });
+      
+      if (response.ok) {
+        console.log("Sync User กับ Server สำเร็จ");
+      }
+    } catch (err) {
+      console.error("Sync Error:", err);
+    }
+
+    // จัดการ Redirect หน้า Login
+    if (window.location.pathname === '/login') {
+      window.location.href = '/wishlist';
+    }
+  } else {
+    // ถ้าไม่มี User และพยายามเข้าหน้าหวงห้าม
+    if (window.location.pathname === '/wishlist' || window.location.pathname === '/admin') {
+      console.log("ไม่มีสิทธิ์เข้าถึงหน้าเพจนี้ กรุณา Login");
+      window.location.href = '/login';
+    }
+  }
+}
 handleAuth();
