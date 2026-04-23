@@ -48,34 +48,76 @@ if (!window.supabaseClient) {
 
 var supabase = window.supabaseClient;
 
-async function handleAuth() {
-  const { data: { user } } = await supabase.auth.getUser();
-
-  console.log("USER:", user);
-
-  // sync user เข้า DB และ Express Session ก่อนเปลี่ยนหน้า
-  if (user) {
-    await fetch('/auth/sync-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: user.email,
-        name: user.user_metadata?.name
-      })
-    });
-  }
-
-  // ถ้า login แล้ว และอยู่หน้า login → ไป wishlist
-  if (user && window.location.pathname === '/login') {
-    window.location.href = '/wishlist';
-    return;
-  }
-
-  // ถ้ายังไม่ login แต่พยายามเข้า wishlist → เด้ง login
-  if (!user && window.location.pathname === '/wishlist') {
-    window.location.href = '/login';
-    return;
+async function handleLogout(e) {
+  if (e) e.preventDefault();
+  console.log("กำลังออกจากระบบ...");
+  
+  try {
+    // 1. ล้าง session ใน Supabase (LocalStorage)
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    
+    console.log("Supabase SignOut สำเร็จ");
+    
+    // 2. ส่งไปที่ Server เพื่อล้าง Express Session
+    // ใช้ window.location.replace เพื่อไม่ให้ผู้ใช้กด back กลับมาได้
+    window.location.replace('/auth/logout'); 
+  } catch (err) {
+    console.error("Logout Error:", err);
+    window.location.replace('/auth/logout');
   }
 }
 
+async function handleAuth() {
+  const overlay = document.getElementById('auth-loading-overlay');
+  
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      // 1. รอให้การ Sync กับ Server เสร็จสมบูรณ์
+      const response = await fetch('/auth/sync-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          name: user.user_metadata?.name
+        })
+      });
+
+      // 2. ถ้าอยู่หน้า Login ให้ไปหน้า Wishlist (หน้าจอยังคงบังอยู่)
+      if (window.location.pathname === '/login') {
+        window.location.href = '/wishlist';
+        return; // ไม่ต้องปิด overlay เพราะกำลังจะเปลี่ยนหน้า
+      }
+      
+      // 3. ถ้าอยู่หน้า Home และเพิ่ง Sync เสร็จ ให้ Refresh 1 ครั้งเพื่อให้ Header อัปเดต
+      // ตรวจสอบว่าใน Session ของ Browser มีการระบุว่า "เพิ่ง Login" หรือไม่ เพื่อป้องกัน Refresh วนลูป
+      if (!sessionStorage.getItem('wasSynced')) {
+        sessionStorage.setItem('wasSynced', 'true');
+        window.location.reload(); 
+        return;
+      }
+
+    } else {
+      // ถ้าไม่มี User และพยายามเข้าหน้า Wishlist
+      if (window.location.pathname === '/wishlist') {
+        window.location.href = '/login';
+        return;
+      }
+      // ล้างสถานะ sync เมื่อไม่มี user
+      sessionStorage.removeItem('wasSynced');
+    }
+  } catch (err) {
+    console.error("Auth error:", err);
+  } finally {
+    // ปิดหน้าจอ Loading เมื่อทุกอย่างเสร็จสิ้น
+    if (overlay) {
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 500);
+    }
+  }
+}
 handleAuth();
