@@ -7,7 +7,60 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
+<body
+  data-user-id="<%= currentUser ? currentUser.id : 'guest' %>"
+  data-has-session-user="<%= currentUser ? 'true' : 'false' %>"
+  data-user-role="<%= currentUser ? currentUser.role : 'guest' %>"
+>
+  <div id="auth-loading-overlay" style="
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+  background: white; display: flex; flex-direction: column; 
+  align-items: center; justify-content: center; z-index: 9999;
+  transition: opacity 0.5s ease;
+">
+  <div class="nav-logo-icon" style="font-size: 3rem; margin-bottom: 1rem; animation: pulse 1.5s infinite;">⭐</div>
+  <p style="font-family: 'Sarabun', sans-serif; color: #666;">Loading...</p>
+</div>
+
+<script>
+  // Safety: never block public pages on auth checks.
+  (function () {
+    var path = window.location.pathname || '/';
+    var isLoginPage = path === '/login';
+    var requiresAuth = path === '/wishlist'
+      || path.indexOf('/product/') === 0
+      || path.indexOf('/products/') === 0
+      || path.indexOf('/admin') === 0;
+
+    if (requiresAuth || isLoginPage) return;
+
+    function hideOverlayNow() {
+      var overlay = document.getElementById('auth-loading-overlay');
+      if (!overlay) return;
+      overlay.style.opacity = '0';
+      // Prevent transparent overlay from blocking clicks.
+      overlay.style.pointerEvents = 'none';
+      setTimeout(function () { overlay.style.display = 'none'; }, 200);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', hideOverlayNow);
+    } else {
+      hideOverlayNow();
+    }
+
+    // Fallback in case DOMContentLoaded never fires / other JS errors.
+    setTimeout(hideOverlayNow, 600);
+  })();
+</script>
+
+<style>
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+</style>
 
 <nav class="navbar">
   <a class="nav-logo" href="/">
@@ -32,13 +85,12 @@
           <% if (currentUser.role === 'admin') { %>
             <a class="user-menu-item" href="/admin">🛠 Admin Panel</a>
           <% } %>
-          <a class="user-menu-item danger" href="/auth/logout">🚪 ออกจากระบบ</a>
+          <a class="user-menu-item danger" onclick="handleLogout(event)">🚪 ออกจากระบบ</a>
         </div>
       </div>
     <% } else { %>
       <span class="nav-divider"></span>
-      <a class="nav-link" href="/login">Login</a>
-      <a class="nav-btn" href="/register">Sign Up</a>
+      <a class="nav-btn" href="/login">Login</a>
     <% } %>
   </div>
 </nav>

@@ -6,16 +6,13 @@
   </div>
   <div class="auth-right">
     <div class="auth-form-box">
-      <h1>Login</h1>
-      <form method="POST" action="/auth/login">
-        <input type="hidden" name="redirect" value="<%= typeof redirect !== 'undefined' ? redirect : '/' %>">
-        <input type="text" class="form-input auth-input" name="username" placeholder="Username" required autocomplete="username">
-        <input type="password" class="form-input auth-input" name="password" placeholder="Password" required autocomplete="current-password">
-        <button type="submit" class="auth-submit">Login</button>
-      </form>
+      <h1>Login with Gmail</h1>
+      <% if (error) { %>
+        <div class="form-error"><%= error %></div>
+      <% } %>
+      <a class="auth-google-btn" href="/auth/google?redirect=<%= encodeURIComponent(redirect || '/wishlist') %>">Login with Google Gmail</a>
       <div class="auth-footer">
-        <a href="/forgot-password">Forgot Password?</a>
-        <span>ยังไม่มีบัญชี? <a class="link-underline" href="/register">Register</a></span>
+        <span>สำหรับผู้ใช้ทั่วไป: เข้าสู่ระบบด้วย Gmail เท่านั้น</span>
       </div>
     </div>
   </div>

@@ -2,93 +2,212 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const supabase = require('../utils/supabase'); // ✅ เปลี่ยนตรงนี้
+const supabase = require('../utils/supabase');
 
-// POST Login
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'admin1234';
+const ADMIN_USER_ID = '00000000-0000-0000-0000-000000000001';
+const ADMIN_SYSTEM_USERNAME = 'admin-system';
+const ADMIN_SYSTEM_EMAIL = 'admin-system@local';
+
+router.get('/admin-login', (req, res) => {
+  res.render('admin-login', { error: null });
+});
+// 🔹 USER LOGIN
 router.post('/login', async (req, res) => {
-  const { username, password, redirect } = req.body;
+  return res.render('login', {
+    error: 'ผู้ใช้ทั่วไปต้องเข้าสู่ระบบด้วย Google เท่านั้น',
+    redirect: '/'
+  });
+});
 
-  const { data: users } = await supabase
-    .from('users')
-    .select('*');
+// 🔹 แสดงหน้า ADMIN LOGIN (เพิ่มส่วนนี้เข้าไป)
+router.get('/admin-login', (req, res) => {
+  res.render('admin-login', { error: null });
+});
+// 🔹 ADMIN LOGIN
+router.post('/admin-login', async (req, res) => {
+  const { username, password } = req.body;
 
-  const user = users.find(u => u.username === username);
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    return res.render('admin-login', {
+      error: 'Admin username/password ไม่ถูกต้อง'
+    });
+  }
 
-  if (!user || !bcrypt.compareSync(password, user.password)) {
-    return res.render('login', {
-      error: 'Username หรือ Password ไม่ถูกต้อง',
-      redirect: redirect || '/wishlist'
+  let adminId = null;
+  try {
+    // Use existing "admin" row if present (avoids unique collisions).
+    const { data: byUsername, error: byUsernameError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', ADMIN_USERNAME)
+      .maybeSingle();
+
+    if (byUsernameError) throw byUsernameError;
+    if (byUsername?.id) {
+      adminId = byUsername.id;
+    } else {
+      // Fallback to our dedicated system user id (may already exist).
+      const { data: byFixedId, error: byFixedIdError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', ADMIN_USER_ID)
+        .maybeSingle();
+
+      if (byFixedIdError) throw byFixedIdError;
+      if (byFixedId?.id) {
+        adminId = byFixedId.id;
+      } else {
+        // Last resort: attempt to create a dedicated system user.
+        const adminUser = {
+          id: ADMIN_USER_ID,
+          username: ADMIN_SYSTEM_USERNAME,
+          email: ADMIN_SYSTEM_EMAIL,
+          password: bcrypt.hashSync(uuidv4(), 10),
+          role: 'admin',
+          role_id: 1,
+          created_at: new Date().toISOString()
+        };
+
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([adminUser]);
+
+        if (insertError) throw insertError;
+        adminId = ADMIN_USER_ID;
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    return res.render('admin-login', {
+      error: 'ไม่สามารถเตรียมบัญชีแอดมินในฐานข้อมูลได้'
     });
   }
 
   req.session.user = {
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    role: user.role_id === 1 ? 'admin' : 'user'
+    id: adminId,
+    username: ADMIN_USERNAME,
+    email: 'admin@local',
+    role: 'admin'
   };
 
-  if (user.role_id === 1) {
-  return res.redirect('/admin'); // ✅ admin ไป dashboard
-} else {
-  return res.redirect('/wishlist'); // ✅ user ไป wishlist
-}
+  return res.redirect('/admin');
 });
 
 
-// POST Register
-router.post('/register', async (req, res) => {
-  const { email, username, password } = req.body;
 
-  if (!email || !username || !password) {
-    return res.render('register', { error: 'กรุณากรอกข้อมูลให้ครบ' });
+// 🔹 GOOGLE LOGIN 
+router.get('/google', async (req, res) => {
+  try {
+    const isLocal = req.get('host').includes('localhost');
+    const redirectPath = typeof req.query.redirect === 'string' && req.query.redirect.startsWith('/')
+      ? req.query.redirect
+      : '/';
+    const callbackPath = `/login?redirect=${encodeURIComponent(redirectPath)}`;
+
+    const redirectTo = isLocal
+      ? `http://localhost:3000${callbackPath}`
+      : `https://fourkon.onrender.com${callbackPath}`;
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        scopes: 'email profile',
+        skipBrowserRedirect: true,
+        queryParams: {
+          prompt: 'select_account',
+          access_type: 'offline'
+        }
+      }
+    });
+
+    if (error || !data?.url) {
+      throw error || new Error('Missing Google OAuth URL');
+    }
+
+    return res.redirect(data.url);
+
+  } catch (err) {
+    console.error(err);
+    return res.render('login', {
+      error: 'เกิดข้อผิดพลาด',
+      redirect: '/'
+    });
   }
+});
 
-  const { data: users } = await supabase
-    .from('users')
-    .select('*');
 
-  if (users.find(u => u.username === username)) {
-    return res.render('register', { error: 'Username นี้ถูกใช้งานแล้ว' });
+// 🔹 SYNC USER (NEW)
+router.post('/sync-user', async (req, res) => {
+  try {
+    const { email, name } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'No email' });
+    }
+
+    const { data: users } = await supabase.from('users').select('*');
+
+    let existingUser = users?.find(
+      u => (u.email || '').toLowerCase() === email.toLowerCase()
+    );
+
+    if (!existingUser) {
+      const baseUsername = name || email.split('@')[0];
+
+      const username = users?.some(u => u.username === baseUsername)
+        ? `${baseUsername}${Date.now().toString().slice(-4)}`
+        : baseUsername;
+
+      const newUser = {
+        id: uuidv4(),
+        username,
+        email,
+        password: bcrypt.hashSync(uuidv4(), 10),
+        role: 'user',
+        role_id: 2,
+        created_at: new Date().toISOString()
+      };
+
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert([newUser]);
+
+      if (insertError) {
+        console.error(insertError);
+        return res.status(500).json({ error: 'สร้าง user ไม่สำเร็จ' });
+      }
+
+      existingUser = newUser;
+    }
+
+    req.session.user = existingUser;
+
+    return res.json({ user: existingUser });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'server error' });
   }
+});
 
-  if (users.find(u => u.email === email)) {
-    return res.render('register', { error: 'Email นี้ถูกใช้งานแล้ว' });
-  }
 
-  const newUser = {
-    id: uuidv4(),
-    username: username.trim(),
-    email: email.trim(),
-    password: bcrypt.hashSync(password, 10),
-    role_id: 2,
-    created_at: new Date().toISOString()
-  };
 
-  const { error } = await supabase
-    .from('users')
-    .insert([newUser]);
-
+// 🔹 LOGOUT
+router.get('/logout', async (req, res) => {
+  // Sign out from Supabase to clear Google OAuth session
+  const { error } = await supabase.auth.signOut();
   if (error) {
-    console.error(error);
-    return res.render('register', { error: 'สมัครไม่สำเร็จ' });
+    console.error('Supabase sign out error:', error);
   }
 
-  req.session.user = {
-    id: newUser.id,
-    username: newUser.username,
-    email: newUser.email,
-    role: 'user'
-  };
-
-  res.redirect('/wishlist');
+  // Destroy local session
+  req.session.destroy(() => {
+    res.redirect('/');
+  });
 });
 
-
-// Logout
-router.get('/logout', (req, res) => {
-  req.session.destroy();
-  res.redirect('/');
-});
 
 module.exports = router;

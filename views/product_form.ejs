@@ -45,16 +45,50 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label">หมวดหมู่</label>
-      <input type="text" class="form-input" name="category"
-             placeholder="เช่น แฟชั่น, อิเล็กทรอนิกส์"
-             value="<%= product ? (product.category || '') : '' %>"
-             list="catSuggestions">
-      <datalist id="catSuggestions">
-        <% categories.forEach(c => { %>
-          <option value="<%= c.name %>">
-        <% }) %>
-      </datalist>
+      <label class="form-label">Tags</label>
+      <input type="hidden" name="category" id="categoryInput" value="<%= product ? (product.category || '') : '' %>">
+      <div class="tag-builder">
+        <div class="tag-builder-input-row">
+          <input type="text" id="tagInput" class="form-input" placeholder="พิมพ์ tag เช่น แฟชั่น แล้วกด +">
+          <button type="button" class="tag-add-btn" onclick="addTag()">+</button>
+        </div>
+        <datalist id="tagSuggestions">
+          <% (tagSuggestions || categories || []).forEach(c => { %>
+            <option value="<%= typeof c === 'string' ? c : c.name %>"></option>
+          <% }) %>
+        </datalist>
+        <div id="selectedTags" class="selected-tags"></div>
+        <% if (mode === 'edit' && categories && categories.length > 0) { %>
+          <div class="saved-categories">
+            <div class="form-label">Saved Categories</div>
+            <div class="saved-category-list" id="savedCategoryList">
+              <% categories.forEach(c => { %>
+                <% if (c.derived) { %>
+                  <div class="saved-category-chip" data-category-name="<%= c.name %>">
+                    <span><%= c.name %></span>
+                    <button
+                      type="button"
+                      class="saved-category-delete"
+                      aria-label="Delete <%= c.name %>"
+                      onclick="deleteSavedCategory(null, <%- JSON.stringify(c.name) %>, this)"
+                    >x</button>
+                  </div>
+                <% } else { %>
+                  <div class="saved-category-chip" data-category-name="<%= c.name %>">
+                    <span><%= c.name %></span>
+                    <button
+                      type="button"
+                      class="saved-category-delete"
+                      aria-label="Delete <%= c.name %>"
+                      onclick="deleteSavedCategory(<%- JSON.stringify(c.id) %>, <%- JSON.stringify(c.name) %>, this)"
+                    >x</button>
+                  </div>
+                <% } %>
+              <% }) %>
+            </div>
+          </div>
+        <% } %>
+      </div>
     </div>
 
     <div class="form-group">
@@ -92,6 +126,180 @@ function previewImage(url) {
     box.innerHTML = '<span style="font-size:3rem">🖼️</span>';
   }
 }
+
+const selectedTags = new Set();
+const tagInput = document.getElementById('tagInput');
+const selectedTagsBox = document.getElementById('selectedTags');
+const categoryInput = document.getElementById('categoryInput');
+const tagSuggestions = document.getElementById('tagSuggestions');
+const savedCategoryList = document.getElementById('savedCategoryList');
+const knownCategories = new Set(<%- JSON.stringify((categories || []).map(category => category.name)) %>);
+const categoryReturnPath = <%- JSON.stringify(mode === 'edit' && product ? '/products/edit/' + product.id : '/products/add') %>;
+
+tagInput.setAttribute('list', 'tagSuggestions');
+
+function syncTagsToInput() {
+  categoryInput.value = Array.from(selectedTags).join(',');
+}
+
+function renderTags() {
+  if (selectedTags.size === 0) {
+    selectedTagsBox.innerHTML = '<span class="tag-empty">ยังไม่มี tag</span>';
+    return;
+  }
+  selectedTagsBox.innerHTML = '';
+  Array.from(selectedTags).forEach((tag) => {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+
+    const text = document.createElement('span');
+    text.textContent = tag;
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = '×';
+    button.setAttribute('aria-label', 'Remove tag ' + tag);
+    button.addEventListener('click', () => removeTag(tag));
+
+    chip.appendChild(text);
+    chip.appendChild(button);
+    selectedTagsBox.appendChild(chip);
+  });
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function ensureSuggestionOption(tag) {
+  if (!tagSuggestions) return;
+  const exists = Array.from(tagSuggestions.options).some(option => option.value === tag);
+  if (exists) return;
+
+  const option = document.createElement('option');
+  option.value = tag;
+  tagSuggestions.appendChild(option);
+}
+
+function ensureSavedCategoryChip(category) {
+  if (!savedCategoryList || !category || !category.id || category.derived) return;
+  const alreadyExists = Array.from(savedCategoryList.querySelectorAll('[data-category-name]'))
+    .some((chip) => chip.dataset.categoryName === category.name);
+  if (alreadyExists) return;
+
+  const chip = document.createElement('div');
+  chip.className = 'saved-category-chip';
+  chip.dataset.categoryName = category.name;
+  chip.innerHTML = '<span>' + escapeHtml(category.name) + '</span><button type="button" class="saved-category-delete" aria-label="Delete ' + escapeHtml(category.name) + '">x</button>';
+  const button = chip.querySelector('button');
+  if (button) {
+    button.addEventListener('click', () => deleteSavedCategory(category.id, category.name, button));
+  }
+  savedCategoryList.appendChild(chip);
+}
+
+async function deleteSavedCategory(categoryId, categoryName, buttonEl) {
+  if (!categoryName) return;
+  if (!confirm('Delete this category?')) return;
+
+  try {
+    const url = categoryId
+      ? ('/categories/delete/' + encodeURIComponent(categoryId))
+      : '/categories/delete-name';
+
+    const response = await fetch(url + '?from=' + encodeURIComponent(categoryReturnPath) + '&format=json', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+      },
+      body: categoryId ? '' : new URLSearchParams({ name: categoryName }).toString()
+    });
+
+    if (!response.ok) {
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (_error) {
+        payload = {};
+      }
+      alert(payload.error || 'Could not delete category right now.');
+      return;
+    }
+
+    knownCategories.delete(categoryName);
+    const chip = buttonEl ? buttonEl.closest('[data-category-name]') : null;
+    if (chip) chip.remove();
+  } catch (_error) {
+    alert('Could not delete category right now.');
+  }
+}
+
+async function saveCategoryIfNeeded(tag) {
+  if (!tag || knownCategories.has(tag)) return;
+
+  const response = await fetch('/categories/add?from=' + encodeURIComponent(categoryReturnPath) + '&format=json', {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+    },
+    body: new URLSearchParams({ name: tag }).toString()
+  });
+
+  if (!response.ok) {
+    throw new Error('Could not save category');
+  }
+
+  let payload = {};
+  try {
+    payload = await response.json();
+  } catch (_error) {
+    payload = {};
+  }
+
+  knownCategories.add(tag);
+  ensureSuggestionOption(tag);
+  ensureSavedCategoryChip(payload.category || { id: 'temp-' + tag, name: tag });
+}
+
+async function addTag() {
+  const tag = tagInput.value.trim();
+  if (!tag) return;
+  try {
+    await saveCategoryIfNeeded(tag);
+  } catch (_error) {
+    alert('Could not save category right now.');
+    return;
+  }
+  selectedTags.add(tag);
+  tagInput.value = '';
+  syncTagsToInput();
+  renderTags();
+}
+
+function removeTag(tag) {
+  selectedTags.delete(tag);
+  syncTagsToInput();
+  renderTags();
+}
+
+tagInput.addEventListener('keydown', function(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    addTag();
+  }
+});
+
+if (categoryInput.value) {
+  categoryInput.value.split(',').map(tag => tag.trim()).filter(Boolean).forEach(tag => selectedTags.add(tag));
+}
+renderTags();
 </script>
 
 <%- include('partials/footer') %>
