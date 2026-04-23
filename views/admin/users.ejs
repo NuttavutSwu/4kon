@@ -26,6 +26,7 @@
       </thead>
       <tbody>
         <% users.forEach(u => { %>
+          <% const signupDateRaw = u.created_at || u.createdAt || null; %>
           <tr>
             <td><strong><%= u.username %></strong></td>
             <td style="color:#7a8ea0"><%= u.email %></td>
@@ -34,7 +35,9 @@
                 <%= u.role %>
               </span>
             </td>
-            <td style="font-size:.78rem;color:#7a8ea0"><%= new Date(u.createdAt).toLocaleDateString('th-TH') %></td>
+            <td style="font-size:.78rem;color:#7a8ea0">
+              <%= signupDateRaw ? new Date(signupDateRaw).toLocaleDateString('th-TH') : '-' %>
+            </td>
             <td>
               <% if (u.id !== currentUser.id) { %>
                 <form method="POST" action="/admin/users/delete/<%= u.id %>" style="display:inline" onsubmit="return confirm('ลบผู้ใช้ <%= u.username %>?')">
