@@ -250,6 +250,8 @@ async function handleAuth() {
   const hideOverlay = () => {
     if (!overlay) return;
     overlay.style.opacity = '0';
+    // Prevent transparent overlay from blocking clicks.
+    overlay.style.pointerEvents = 'none';
     setTimeout(() => {
       overlay.style.display = 'none';
     }, 500);

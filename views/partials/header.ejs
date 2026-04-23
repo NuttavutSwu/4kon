@@ -38,6 +38,8 @@
       var overlay = document.getElementById('auth-loading-overlay');
       if (!overlay) return;
       overlay.style.opacity = '0';
+      // Prevent transparent overlay from blocking clicks.
+      overlay.style.pointerEvents = 'none';
       setTimeout(function () { overlay.style.display = 'none'; }, 200);
     }
 
