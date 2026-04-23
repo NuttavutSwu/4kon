@@ -7,7 +7,7 @@ const { createClient } = require('@supabase/supabase-js');
  * - `SUPABASE_URL`
  * - `SUPABASE_KEY`
  *
- * @type {import('@supabase/supabase-js').SupabaseClient}
+ * @type {Object}
  */
 const supabase = createClient(
   process.env.SUPABASE_URL,

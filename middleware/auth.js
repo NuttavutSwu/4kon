@@ -3,9 +3,11 @@
  *
  * Redirects to `/login?redirect=<originalUrl>` when no session user exists.
  *
- * @param {import('express').Request & { session?: { user?: { id: string, role?: string } } }} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
+ * Note: `req.session.user` is expected to exist when authenticated.
+ *
+ * @param {Object} req
+ * @param {Object} res
+ * @param {Function} next
  * @returns {void}
  */
 function requireLogin(req, res, next) {
@@ -20,9 +22,11 @@ function requireLogin(req, res, next) {
  *
  * Redirects to `/auth/admin-login` when not logged in or not an admin.
  *
- * @param {import('express').Request & { session?: { user?: { id: string, role?: string } } }} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
+ * Note: `req.session.user.role` should equal `"admin"`.
+ *
+ * @param {Object} req
+ * @param {Object} res
+ * @param {Function} next
  * @returns {void}
  */
 function requireAdmin(req, res, next) {

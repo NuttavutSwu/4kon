@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Home</title>
+    <title>JSDoc: Source: middleware/auth.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,32 +17,58 @@
 
 <div id="main">
 
-    <h1 class="page-title">Home</h1>
+    <h1 class="page-title">Source: middleware/auth.js</h1>
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Express middleware that requires a logged-in session user.
+ *
+ * Redirects to `/login?redirect=&lt;originalUrl>` when no session user exists.
+ *
+ * Note: `req.session.user` is expected to exist when authenticated.
+ *
+ * @param {Object} req
+ * @param {Object} res
+ * @param {Function} next
+ * @returns {void}
+ */
+function requireLogin(req, res, next) {
+  if (!req.session.user) {
+    return res.redirect('/login?redirect=' + encodeURIComponent(req.originalUrl));
+  }
+  next();
+}
 
+/**
+ * Express middleware that requires an admin session user.
+ *
+ * Redirects to `/auth/admin-login` when not logged in or not an admin.
+ *
+ * Note: `req.session.user.role` should equal `"admin"`.
+ *
+ * @param {Object} req
+ * @param {Object} res
+ * @param {Function} next
+ * @returns {void}
+ */
+function requireAdmin(req, res, next) {
+  if (!req.session.user || req.session.user.role !== 'admin') {
+    // แก้จาก '/admin-login' เป็น '/auth/admin-login'
+    return res.redirect('/auth/admin-login');
+  }
+  next();
+}
 
-    <h3> </h3>
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
+module.exports = { requireLogin, requireAdmin };
+</code></pre>
+        </article>
+    </section>
 
 
 
