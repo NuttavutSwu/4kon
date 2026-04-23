@@ -3,6 +3,14 @@ const router = express.Router();
 const supabase = require('../utils/supabase');
 const { requireLogin } = require('../middleware/auth');
 
+/**
+ * Collect unique category names from a list of products.
+ *
+ * Products store categories as a comma-separated string in `product.category`.
+ *
+ * @param {{ category?: string }[] | null | undefined} products
+ * @returns {string[]}
+ */
 function collectCategoryNames(products) {
   return Array.from(new Set(
     (products || [])
@@ -12,6 +20,14 @@ function collectCategoryNames(products) {
   ));
 }
 
+/**
+ * Merge saved categories (from DB) with categories derived from product tags.
+ *
+ * @param {{ id: string, name: string }[] | null | undefined} savedCategories
+ * @param {{ category?: string }[] | null | undefined} products
+ * @param {string} userId
+ * @returns {{ id: string, name: string, derived?: boolean }[]}
+ */
 function mergeCategories(savedCategories, products, userId) {
   const existing = savedCategories || [];
   const existingNames = new Set(existing.map(category => category.name));

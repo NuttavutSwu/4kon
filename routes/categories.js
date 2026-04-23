@@ -4,6 +4,14 @@ const { v4: uuidv4 } = require('uuid');
 const { requireLogin } = require('../middleware/auth');
 const supabase = require('../utils/supabase');
 
+/**
+ * Compute a safe return URL for redirects.
+ *
+ * Prefers `?from=/path` (must start with "/"), then falls back to Referer, then `/wishlist`.
+ *
+ * @param {import('express').Request} req
+ * @returns {string}
+ */
 function getReturnTo(req) {
   const candidate = typeof req.query.from === 'string' && req.query.from.startsWith('/')
     ? req.query.from
@@ -11,21 +19,46 @@ function getReturnTo(req) {
   return candidate || req.get('referer') || '/wishlist';
 }
 
+/**
+ * Normalize a category/tag name from request inputs.
+ * @param {unknown} name
+ * @returns {string}
+ */
 function normalizeName(name) {
   return String(name || '').trim();
 }
 
+/**
+ * Whether the request expects a JSON response.
+ * @param {import('express').Request} req
+ * @returns {boolean}
+ */
 function wantsJson(req) {
   const accept = String(req.get('accept') || '').toLowerCase();
   return req.query.format === 'json' || accept.includes('application/json');
 }
 
+/**
+ * Redirect back with an encoded `error=` query string.
+ *
+ * @param {import('express').Response} res
+ * @param {string} returnTo
+ * @param {string} message
+ * @returns {void}
+ */
 function redirectWithError(res, returnTo, message) {
   const base = returnTo || '/wishlist';
   const joiner = base.includes('?') ? '&' : '?';
   return res.redirect(base + joiner + 'error=' + encodeURIComponent(message));
 }
 
+/**
+ * Remove a single tag from a comma-separated tag string.
+ *
+ * @param {unknown} raw
+ * @param {string} deletedName
+ * @returns {string}
+ */
 function stripTag(raw, deletedName) {
   const tags = String(raw || '')
     .split(',')

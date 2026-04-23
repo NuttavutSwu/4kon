@@ -4,6 +4,14 @@ const { v4: uuidv4 } = require('uuid');
 const { requireLogin } = require('../middleware/auth');
 const supabase = require('../utils/supabase');
 
+/**
+ * Normalize a raw category/tags input string into a unique tag list.
+ *
+ * Input format: comma-separated string.
+ *
+ * @param {unknown} rawCategory
+ * @returns {string[]}
+ */
 function normalizeTags(rawCategory) {
   if (!rawCategory) return [];
   return String(rawCategory)
@@ -13,6 +21,14 @@ function normalizeTags(rawCategory) {
     .filter((tag, idx, arr) => arr.indexOf(tag) === idx);
 }
 
+/**
+ * Merge user-saved categories with "derived" categories computed from product tags.
+ *
+ * @param {{ id: string, name: string, derived?: boolean }[] | null | undefined} savedCategories
+ * @param {{ category?: string }[] | null | undefined} products
+ * @param {string} userId
+ * @returns {{ id: string, name: string, derived?: boolean }[]}
+ */
 function mergeCategories(savedCategories, products, userId) {
   const existing = savedCategories || [];
   const existingNames = new Set(existing.map(category => category.name));
