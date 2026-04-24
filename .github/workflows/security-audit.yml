@@ -1,0 +1,24 @@
+name: Weekly Security Audit
+
+# ตั้งเวลาให้ทำงานอัตโนมัติ
+on:
+  schedule:
+    # รันทุกวันจันทร์ เวลา 00:00 UTC (ประมาณ 7 โมงเช้าเวลาไทย)
+    - cron: '0 0 * * 1'
+  #(Manual Trigger)
+  workflow_dispatch:
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check for vulnerabilities
+        #
+        run: npm audit
