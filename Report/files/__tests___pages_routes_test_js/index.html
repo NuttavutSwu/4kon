@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - __tests__/pages.routes.test.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>__tests__/pages.routes.test.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">67.37</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">324</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">51.48</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">4.75</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">const express = require(&#039;express&#039;);
+const request = require(&#039;supertest&#039;);
+
+jest.mock(&#039;../utils/supabase&#039;, () =&gt; {
+  const state = {
+    logInsertError: null,
+    productsError: null,
+    throwProductsFrom: false
+  };
+  const tables = {
+    products: [
+      { id: &#039;p1&#039;, name: &#039;Cheap&#039;, price: 1, createdBy: &#039;u1&#039;, platform: &#039;other&#039;, description: &#039;&#039;, category: &#039;tech&#039;, link: &#039;/a&#039; },
+      { id: &#039;p2&#039;, name: &#039;Mid&#039;, price: 50, createdBy: &#039;u1&#039;, platform: &#039;shopee&#039;, description: &#039;desc&#039;, category: &#039;tech,mobile&#039;, link: &#039;/b&#039; },
+      { id: &#039;p3&#039;, name: &#039;Other user&#039;, price: 999, createdBy: &#039;u2&#039;, platform: &#039;other&#039;, description: &#039;&#039;, category: &#039;x&#039;, link: &#039;/c&#039; }
+    ],
+    categories: [{ id: &#039;c1&#039;, name: &#039;tech&#039;, createdBy: &#039;u1&#039; }],
+    logs: []
+  };
+
+  function makeQuery(table) {
+    const rows = tables[table] || [];
+    const filters = [];
+    const query = {
+      select: jest.fn(() =&gt; query),
+      eq: jest.fn((field, value) =&gt; {
+        filters.push({ field, value });
+        return query;
+      }),
+      single: jest.fn(async () =&gt; {
+        let data = rows.slice();
+        for (const filter of filters) {
+          data = data.filter((row) =&gt; row[filter.field] === filter.value);
+        }
+        return { data: data[0] || null, error: null };
+      }),
+      insert: jest.fn(async (payload) =&gt; {
+        const list = Array.isArray(payload) ? payload : [payload];
+        list.forEach((item) =&gt; rows.push(item));
+        if (table === &#039;logs&#039; &amp;&amp; state.logInsertError) return { error: state.logInsertError };
+        return { error: null };
+      }),
+      then: (resolve, reject) =&gt; {
+        try {
+          let data = rows;
+          for (const filter of filters) {
+            data = data.filter((row) =&gt; row[filter.field] === filter.value);
+          }
+          if (table === &#039;products&#039; &amp;&amp; state.productsError) {
+            return Promise.resolve(resolve({ data, error: state.productsError }));
+          }
+          return Promise.resolve(resolve({ data, error: null }));
+        } catch (err) {
+          if (reject) return Promise.resolve(reject(err));
+          throw err;
+        }
+      }
+    };
+    return query;
+  }
+
+  return {
+    __state: state,
+    __tables: tables,
+    from: jest.fn((table) =&gt; {
+      if (table === &#039;products&#039; &amp;&amp; state.throwProductsFrom) {
+        throw new Error(&#039;products query throw&#039;);
+      }
+      return makeQuery(table);
+    })
+  };
+});
+
+const supabase = require(&#039;../utils/supabase&#039;);
+const pagesRouter = require(&#039;../routes/pages&#039;);
+
+function makeApp() {
+  const app = express();
+
+  app.use((req, res, next) =&gt; {
+    const raw = req.get(&#039;x-test-user&#039;);
+    req.session = raw ? { user: JSON.parse(raw) } : {};
+    next();
+  });
+
+  app.use((req, res, next) =&gt; {
+    res.render = (_view, locals) =&gt; res.status(res.statusCode || 200).json(locals || {});
+    next();
+  });
+
+  app.use(&#039;/&#039;, pagesRouter);
+  return app;
+}
+
+describe(&#039;routes/pages wishlist filters&#039;, () =&gt; {
+  beforeEach(() =&gt; {
+    supabase.__tables.logs.length = 0;
+    supabase.__state.logInsertError = null;
+    supabase.__state.productsError = null;
+    supabase.__state.throwProductsFrom = false;
+  });
+
+  test(&#039;GET / returns guest view payload when not logged in&#039;, async () =&gt; {
+    const app = makeApp();
+
+    const res = await request(app).get(&#039;/&#039;);
+
+    expect(res.status).toBe(200);
+    expect(res.body.guest).toBe(true);
+    expect(res.body.products).toEqual([]);
+    expect(res.body.stats).toEqual(expect.objectContaining({ total: 0 }));
+  });
+
+  test(&#039;GET /login redirects home when already logged in&#039;, async () =&gt; {
+    const app = makeApp();
+
+    const res = await request(app)
+      .get(&#039;/login&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(&#039;/&#039;);
+  });
+
+  test(&#039;GET /login renders login view when guest&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app).get(&#039;/login?redirect=%2Fwishlist&#039;);
+
+    expect(res.status).toBe(200);
+    expect(res.body.redirect).toBe(&#039;/wishlist&#039;);
+  });
+
+  test(&#039;GET /wishlist applies maxPrice and minPrice filters&#039;, async () =&gt; {
+    const app = makeApp();
+
+    const res = await request(app)
+      .get(&#039;/wishlist?minPrice=1&amp;maxPrice=1&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.products).toHaveLength(1);
+    expect(res.body.products[0]).toEqual(expect.objectContaining({ id: &#039;p1&#039;, price: 1 }));
+  });
+
+  test(&#039;GET /wishlist handles product query error but still responds&#039;, async () =&gt; {
+    supabase.__state.productsError = { message: &#039;wishlist products fail&#039; };
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/wishlist&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.products)).toBe(true);
+  });
+
+  test(&#039;GET / returns dashboard stats for logged-in user&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.stats).toEqual(expect.objectContaining({ total: 2, promoCount: 0 }));
+  });
+
+  test(&#039;GET / handles products query error with safe fallback list&#039;, async () =&gt; {
+    supabase.__state.productsError = { message: &#039;products fail&#039; };
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.products)).toBe(true);
+    expect(res.body.stats).toEqual(expect.objectContaining({ total: 2 }));
+  });
+
+  test(&#039;GET /wishlist filters by category and platform&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/wishlist?category=mobile&amp;platform=shopee&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.products).toHaveLength(1);
+    expect(res.body.products[0].id).toBe(&#039;p2&#039;);
+  });
+
+  test(&#039;GET /product/:id returns 404 when not owned&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/product/p3&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(404);
+  });
+
+  test(&#039;GET /product/:id returns detail when owned&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/product/p1&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.product).toEqual(expect.objectContaining({ id: &#039;p1&#039; }));
+  });
+
+  test(&#039;POST /product/:id/buy returns link and logs event&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/product/p1/buy&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, username: &#039;tester&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.link).toBe(&#039;/a&#039;);
+    expect(supabase.__tables.logs.length).toBeGreaterThan(0);
+  });
+
+  test(&#039;POST /product/:id/buy still returns success when log insert fails&#039;, async () =&gt; {
+    supabase.__state.logInsertError = { message: &#039;log fail&#039; };
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/product/p1/buy&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, username: &#039;tester&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.link).toBe(&#039;/a&#039;);
+  });
+
+  test(&#039;POST /product/:id/buy returns fallback when product missing&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app).post(&#039;/product/notfound/buy&#039;);
+
+    expect(res.status).toBe(200);
+    expect(res.body.link).toBe(&#039;#&#039;);
+  });
+
+  test(&#039;static pages render&#039;, async () =&gt; {
+    const app = makeApp();
+    const [about, register, forgot] = await Promise.all([
+      request(app).get(&#039;/about&#039;),
+      request(app).get(&#039;/register&#039;),
+      request(app).get(&#039;/forgot-password&#039;)
+    ]);
+
+    expect(about.status).toBe(200);
+    expect(register.status).toBe(200);
+    expect(forgot.status).toBe(200);
+  });
+
+  test(&#039;GET /wishlist applies search and sort&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/wishlist?search=mid&amp;sort=name-asc&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.products).toHaveLength(1);
+    expect(res.body.products[0].name).toBe(&#039;Mid&#039;);
+  });
+
+  test(&#039;GET /wishlist search also matches description branch&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/wishlist?search=desc&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.products).toHaveLength(1);
+    expect(res.body.products[0].id).toBe(&#039;p2&#039;);
+  });
+
+  test(&#039;GET /wishlist handles sort price-desc branch&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/wishlist?sort=price-desc&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.products[0].price).toBeGreaterThanOrEqual(res.body.products[1].price);
+  });
+
+  test(&#039;GET /admin-login redirects admins to /admin&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/admin-login&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;a1&#039;, role: &#039;admin&#039; }));
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(&#039;/admin&#039;);
+  });
+
+  test(&#039;GET /admin-login renders page for non-admin users&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/admin-login&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.error).toBe(null);
+  });
+
+  test(&#039;GET /register redirects logged-in users to wishlist&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/register&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(&#039;/wishlist&#039;);
+  });
+
+  test(&#039;GET /wishlist returns 500 when query throws in try/catch&#039;, async () =&gt; {
+    supabase.__state.throwProductsFrom = true;
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/wishlist&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(500);
+    expect(res.text).toContain(&#039;Server Error&#039;);
+  });
+});</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ cyclomatic }} <br>
+    Length : {{ halstead.length }} <br>
+    Difficulty : {{ halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>
