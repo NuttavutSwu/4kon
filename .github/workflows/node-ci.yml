@@ -1,0 +1,34 @@
+name: 4kon CI (Node.js Test)
+
+on:
+  push:
+    branches: [ "main", "dev" ] # รันเมื่อมีการ Push เข้า Branch หลัก
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x' # อ้างอิงเวอร์ชันที่ทีมใช้พัฒนา
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm install # ติดตั้ง Library เช่น Express, Jest, Supabase
+
+    - name: Run All Tests
+      run: npm test # รันไฟล์ Test ทั้งหมด (auth, products, pages)
+      env:
+        # กำหนดค่า Environment สำหรับรัน Test
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
+    - name: Generate Coverage Report
+      run: npm run test -- --coverage # สร้าง Report ผลการทดสอบ
