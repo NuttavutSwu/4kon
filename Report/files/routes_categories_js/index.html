@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - routes/categories.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>routes/categories.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">64.35</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">282</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">54.19</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">2.78</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">const express = require(&#039;express&#039;);
+const router = express.Router();
+const { v4: uuidv4 } = require(&#039;uuid&#039;);
+const { requireLogin } = require(&#039;../middleware/auth&#039;);
+const supabase = require(&#039;../utils/supabase&#039;);
+
+/**
+ * Compute a safe return URL for redirects.
+ *
+ * Prefers `?from=/path` (must start with &quot;/&quot;), then falls back to Referer, then `/wishlist`.
+ *
+ * @param {Object} req
+ * @returns {string}
+ */
+function getReturnTo(req) {
+  const candidate = typeof req.query.from === &#039;string&#039; &amp;&amp; req.query.from.startsWith(&#039;/&#039;)
+    ? req.query.from
+    : null;
+  return candidate || req.get(&#039;referer&#039;) || &#039;/wishlist&#039;;
+}
+
+/**
+ * Normalize a category/tag name from request inputs.
+ * @param {unknown} name
+ * @returns {string}
+ */
+function normalizeName(name) {
+  return String(name || &#039;&#039;).trim();
+}
+
+/**
+ * Whether the request expects a JSON response.
+ * @param {Object} req
+ * @returns {boolean}
+ */
+function wantsJson(req) {
+  const accept = String(req.get(&#039;accept&#039;) || &#039;&#039;).toLowerCase();
+  return req.query.format === &#039;json&#039; || accept.includes(&#039;application/json&#039;);
+}
+
+/**
+ * Redirect back with an encoded `error=` query string.
+ *
+ * @param {Object} res
+ * @param {string} returnTo
+ * @param {string} message
+ * @returns {void}
+ */
+function redirectWithError(res, returnTo, message) {
+  const base = returnTo || &#039;/wishlist&#039;;
+  const joiner = base.includes(&#039;?&#039;) ? &#039;&amp;&#039; : &#039;?&#039;;
+  return res.redirect(base + joiner + &#039;error=&#039; + encodeURIComponent(message));
+}
+
+/**
+ * Remove a single tag from a comma-separated tag string.
+ *
+ * @param {unknown} raw
+ * @param {string} deletedName
+ * @returns {string}
+ */
+function stripTag(raw, deletedName) {
+  const tags = String(raw || &#039;&#039;)
+    .split(&#039;,&#039;)
+    .map(t =&gt; t.trim())
+    .filter(Boolean);
+  return tags.filter(t =&gt; t !== deletedName).join(&#039;,&#039;);
+}
+
+router.post(&#039;/add&#039;, requireLogin, async (req, res) =&gt; {
+  const returnTo = getReturnTo(req);
+  const name = normalizeName(req.body.name);
+
+  if (!name) {
+    if (wantsJson(req)) {
+      return res.status(400).json({ error: &#039;Category name required&#039; });
+    }
+    return res.redirect(returnTo);
+  }
+
+  let query = supabase.from(&#039;categories&#039;).select(&#039;*&#039;);
+  if (req.session.user.role !== &#039;admin&#039;) {
+    query = query.eq(&#039;createdBy&#039;, req.session.user.id);
+  }
+
+  const { data: categories } = await query;
+  const exists = (categories || []).find(c =&gt; c.name === name);
+  let savedCategory = exists || null;
+
+  if (!exists) {
+    const payload = {
+      id: uuidv4(),
+      name
+    };
+
+    if (req.session.user.role !== &#039;admin&#039;) {
+      payload.createdBy = req.session.user.id;
+    }
+
+    await supabase.from(&#039;categories&#039;).insert([payload]);
+    savedCategory = payload;
+  }
+
+  if (wantsJson(req)) {
+    return res.json({
+      ok: true,
+      category: savedCategory,
+      created: !exists
+    });
+  }
+
+  res.redirect(returnTo);
+});
+
+// Delete by name (works for derived categories too)
+router.post(&#039;/delete-name&#039;, requireLogin, async (req, res) =&gt; {
+  const returnTo = getReturnTo(req);
+  const name = normalizeName(req.body.name || req.query.name);
+
+  if (!name || name.toLowerCase() === &#039;all&#039; || name.toLowerCase() === &#039;all items&#039;) {
+    if (wantsJson(req)) {
+      return res.status(400).json({ ok: false, error: &#039;Invalid category name&#039; });
+    }
+    return redirectWithError(res, returnTo, &#039;ลบหมวดหมู่นี้ไม่ได้&#039;);
+  }
+
+  // Validate: each product must keep at least 1 tag.
+  const { data: productsForValidation } = await supabase
+    .from(&#039;products&#039;)
+    .select(&#039;id, name, category&#039;)
+    .eq(&#039;createdBy&#039;, req.session.user.id);
+
+  const wouldBecomeEmpty = (productsForValidation || []).filter((p) =&gt; {
+    const tags = String(p.category || &#039;&#039;).split(&#039;,&#039;).map(t =&gt; t.trim()).filter(Boolean);
+    return tags.includes(name) &amp;&amp; tags.length === 1;
+  });
+
+  if (wouldBecomeEmpty.length &gt; 0) {
+    const message = &#039;ต้องเหลืออย่างน้อย 1 tag ให้สินค้า&#039;;
+    if (wantsJson(req)) {
+      return res.status(400).json({
+        ok: false,
+        error: message,
+        affectedCount: wouldBecomeEmpty.length
+      });
+    }
+    return redirectWithError(res, returnTo, message);
+  }
+
+  // Delete saved category row if it exists
+  if (req.session.user.role !== &#039;admin&#039;) {
+    await supabase
+      .from(&#039;categories&#039;)
+      .delete()
+      .eq(&#039;createdBy&#039;, req.session.user.id)
+      .eq(&#039;name&#039;, name);
+  } else {
+    await supabase
+      .from(&#039;categories&#039;)
+      .delete()
+      .eq(&#039;name&#039;, name);
+  }
+
+  // Strip the name from products
+  let productsQuery = supabase
+    .from(&#039;products&#039;)
+    .select(&#039;id, category&#039;);
+
+  // Keep scope safe: normal users only their own; admin also only their own wishlist.
+  productsQuery = productsQuery.eq(&#039;createdBy&#039;, req.session.user.id);
+
+  const { data: allProducts } = await productsQuery;
+
+  if (allProducts &amp;&amp; allProducts.length &gt; 0) {
+    const toUpdate = allProducts.filter(p =&gt; {
+      const tags = String(p.category || &#039;&#039;).split(&#039;,&#039;).map(t =&gt; t.trim()).filter(Boolean);
+      return tags.includes(name);
+    });
+
+    for (const p of toUpdate) {
+      const newTags = stripTag(p.category, name);
+      await supabase
+        .from(&#039;products&#039;)
+        .update({ category: newTags })
+        .eq(&#039;id&#039;, p.id);
+    }
+  }
+
+  if (wantsJson(req)) {
+    return res.json({ ok: true, deletedName: name });
+  }
+
+  return res.redirect(returnTo);
+});
+
+router.post(&#039;/delete/:id&#039;, requireLogin, async (req, res) =&gt; {
+  const returnTo = getReturnTo(req);
+  const categoryId = req.params.id;
+
+  let query = supabase
+    .from(&#039;categories&#039;)
+    .select(&#039;*&#039;)
+    .eq(&#039;id&#039;, categoryId);
+
+  if (req.session.user.role !== &#039;admin&#039;) {
+    query = query.eq(&#039;createdBy&#039;, req.session.user.id);
+  }
+
+  const { data: category } = await query.single();
+
+  if (!category) {
+    if (wantsJson(req)) {
+      return res.status(404).json({ ok: false, error: &#039;Category not found&#039; });
+    }
+    return redirectWithError(res, returnTo, &#039;ไม่พบหมวดหมู่&#039;);
+  }
+
+  // Validate: each product must keep at least 1 tag.
+  const { data: productsForValidation } = await supabase
+    .from(&#039;products&#039;)
+    .select(&#039;id, name, category&#039;)
+    .eq(&#039;createdBy&#039;, req.session.user.id);
+
+  const wouldBecomeEmpty = (productsForValidation || []).filter((p) =&gt; {
+    const tags = String(p.category || &#039;&#039;).split(&#039;,&#039;).map(t =&gt; t.trim()).filter(Boolean);
+    return tags.includes(category.name) &amp;&amp; tags.length === 1;
+  });
+
+  if (wouldBecomeEmpty.length &gt; 0) {
+    const message = &#039;ต้องเหลืออย่างน้อย 1 tag ให้สินค้า&#039;;
+    if (wantsJson(req)) {
+      return res.status(400).json({
+        ok: false,
+        error: message,
+        affectedCount: wouldBecomeEmpty.length
+      });
+    }
+    return redirectWithError(res, returnTo, message);
+  }
+
+  await supabase
+    .from(&#039;categories&#039;)
+    .delete()
+    .eq(&#039;id&#039;, categoryId);
+
+  // Strip the deleted category name from all products that reference it
+  const deletedName = category.name;
+
+  let productsQuery = supabase
+    .from(&#039;products&#039;)
+    .select(&#039;id, category&#039;);
+
+  if (req.session.user.role !== &#039;admin&#039;) {
+    productsQuery = productsQuery.eq(&#039;createdBy&#039;, req.session.user.id);
+  }
+
+  const { data: allProducts } = await productsQuery;
+
+  if (allProducts &amp;&amp; allProducts.length &gt; 0) {
+    const toUpdate = allProducts.filter(p =&gt; {
+      const tags = String(p.category || &#039;&#039;).split(&#039;,&#039;).map(t =&gt; t.trim()).filter(Boolean);
+      return tags.includes(deletedName);
+    });
+
+    for (const p of toUpdate) {
+      const newTags = stripTag(p.category, deletedName);
+
+      await supabase
+        .from(&#039;products&#039;)
+        .update({ category: newTags })
+        .eq(&#039;id&#039;, p.id);
+    }
+  }
+
+  if (wantsJson(req)) {
+    return res.json({ ok: true, deletedId: categoryId, deletedName });
+  }
+
+  res.redirect(returnTo);
+});
+
+module.exports = router;</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ cyclomatic }} <br>
+    Length : {{ halstead.length }} <br>
+    Difficulty : {{ halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

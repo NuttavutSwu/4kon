@@ -36,7 +36,7 @@
             <td style="font-weight:600">฿<%= Number(p.price).toLocaleString() %></td>
             <td><%= p.category || '-' %></td>
             <td><span class="tbl-badge <%= p.platform %>"><%= p.platform || 'other' %></span></td>
-            <td><%= p.isPromo ? '<span class="tbl-badge" style="background:#fff3cd;color:#856404">PROMO</span>' : '-' %></td>
+            <td><%- p.isPromo ? '<span class="tbl-badge" style="background:#fff3cd;color:#856404">PROMO</span>' : '-' %></td>
             <td style="font-size:.78rem;color:#7a8ea0"><%= new Date(p.createdAt).toLocaleDateString('th-TH') %></td>
             <td style="display:flex;gap:.4rem;align-items:center">
               <a class="tbl-action edit" href="/products/edit/<%= p.id %>" title="แก้ไข">✏️</a>
