@@ -1,0 +1,26 @@
+name: Semgrep Security Scan
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+ 
+  schedule:
+    - cron: '0 0 * * 1'
+
+jobs:
+  semgrep:
+    name: Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Semgrep OSS Scan
+        
+        uses: semgrep/semgrep-action@v1
+        with:
+          # ใช้ชุดกฎมาตรฐาน (Security Audit)
+          config: >-
+            p/security-audit
+            p/javascript
