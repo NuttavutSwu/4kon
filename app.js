@@ -32,9 +32,7 @@ app.use((req, res, next) => {
   res.locals.currentUser = req.session.user || null;
   next();
 });
-
-
-
+const db = require('./utils/db');
 // Routes
 app.use('/', pageRoutes);
 app.use('/auth', authRoutes);
@@ -42,7 +40,15 @@ app.use('/products', productRoutes);
 app.use('/categories', categoryRoutes);
 app.use('/admin', adminRoutes);
 
+if (process.env.NODE_ENV !== 'test') {
+  db.seed && db.seed();
+}
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`⭐ StarWish running at http://localhost:${PORT}`);
-});
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`StarWish running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;

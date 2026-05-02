@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - routes\products.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>routes\products.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">54.92</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">185</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">43.40</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">1.84</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">const express = require(&#039;express&#039;);
+const router = express.Router();
+const { v4: uuidv4 } = require(&#039;uuid&#039;);
+const { requireLogin } = require(&#039;../middleware/auth&#039;);
+const supabase = require(&#039;../utils/supabase&#039;);
+
+// POST Add product
+router.post(&#039;/add&#039;, requireLogin, async (req, res) =&gt; {
+  const { name, price, platform, category, link, description, imgUrl, isPromo } = req.body;
+
+  if (!name || !price) {
+    return res.redirect(&#039;/wishlist?error=missing&#039;);
+  }
+
+  const newProduct = {
+    id: uuidv4(),
+    name: name.trim(),
+    price: Number(price),
+    platform: platform || &#039;other&#039;,
+    category: category ? category.trim() : &#039;&#039;,
+    link: link ? link.trim() : &#039;&#039;,
+    description: description ? description.trim() : &#039;&#039;,
+    imgUrl: imgUrl ? imgUrl.trim() : &#039;&#039;,
+    isPromo: isPromo === &#039;on&#039;,
+    createdBy: req.session.user.id,
+    createdAt: new Date().toISOString()
+  };
+
+  // 👉 insert product
+  const { error } = await supabase.from(&#039;products&#039;).insert([newProduct]);
+  if (error) {
+    console.error(error);
+    return res.status(500).send(&#039;Error adding product&#039;);
+  }
+
+  // 👉 add category if not exists
+  if (newProduct.category) {
+    const { data: categories } = await supabase.from(&#039;categories&#039;).select(&#039;*&#039;);
+
+    if (!categories.find(c =&gt; c.name === newProduct.category)) {
+      await supabase.from(&#039;categories&#039;).insert([
+        { id: uuidv4(), name: newProduct.category }
+      ]);
+    }
+  }
+
+  res.redirect(&#039;/product/&#039; + newProduct.id);
+});
+
+// POST Edit product
+router.post(&#039;/edit/:id&#039;, requireLogin, async (req, res) =&gt; {
+  const { name, price, platform, category, link, description, imgUrl, isPromo } = req.body;
+
+  const { data: products } = await supabase
+    .from(&#039;products&#039;)
+    .select(&#039;*&#039;)
+    .eq(&#039;id&#039;, req.params.id)
+    .single();
+
+  if (!products) {
+    return res.status(404).render(&#039;error&#039;, { message: &#039;ไม่พบสินค้า&#039; });
+  }
+
+  // check permission
+  if (
+    products.createdBy !== req.session.user.id &amp;&amp;
+    req.session.user.role !== &#039;admin&#039;
+  ) {
+    return res.status(403).render(&#039;error&#039;, { message: &#039;ไม่มีสิทธิ์แก้ไขสินค้านี้&#039; });
+  }
+
+  const updatedProduct = {
+    name: name.trim(),
+    price: Number(price),
+    platform: platform || &#039;other&#039;,
+    category: category ? category.trim() : &#039;&#039;,
+    link: link ? link.trim() : &#039;&#039;,
+    description: description ? description.trim() : &#039;&#039;,
+    imgUrl: imgUrl ? imgUrl.trim() : &#039;&#039;,
+    isPromo: isPromo === &#039;on&#039;,
+    updatedAt: new Date().toISOString()
+  };
+
+  const { error } = await supabase
+    .from(&#039;products&#039;)
+    .update(updatedProduct)
+    .eq(&#039;id&#039;, req.params.id);
+
+  if (error) {
+    console.error(error);
+    return res.status(500).send(&#039;Error updating product&#039;);
+  }
+
+  // add category if new
+  if (updatedProduct.category) {
+    const { data: categories } = await supabase.from(&#039;categories&#039;).select(&#039;*&#039;);
+
+    if (!categories.find(c =&gt; c.name === updatedProduct.category)) {
+      await supabase.from(&#039;categories&#039;).insert([
+        { id: uuidv4(), name: updatedProduct.category }
+      ]);
+    }
+  }
+
+  res.redirect(&#039;/product/&#039; + req.params.id);
+});
+
+// POST Delete product
+router.post(&#039;/delete/:id&#039;, requireLogin, async (req, res) =&gt; {
+  const { data: product } = await supabase
+    .from(&#039;products&#039;)
+    .select(&#039;*&#039;)
+    .eq(&#039;id&#039;, req.params.id)
+    .single();
+
+  if (!product) {
+    return res.status(404).render(&#039;error&#039;, { message: &#039;ไม่พบสินค้า&#039; });
+  }
+
+  if (
+    product.createdBy !== req.session.user.id &amp;&amp;
+    req.session.user.role !== &#039;admin&#039;
+  ) {
+    return res.status(403).render(&#039;error&#039;, { message: &#039;ไม่มีสิทธิ์ลบสินค้านี้&#039; });
+  }
+
+  const { error } = await supabase
+    .from(&#039;products&#039;)
+    .delete()
+    .eq(&#039;id&#039;, req.params.id);
+
+  if (error) {
+    console.error(error);
+    return res.status(500).send(&#039;Error deleting product&#039;);
+  }
+
+  res.redirect(&#039;/wishlist&#039;);
+});
+
+// GET Edit form
+router.get(&#039;/edit/:id&#039;, requireLogin, async (req, res) =&gt; {
+  const { data: product } = await supabase
+    .from(&#039;products&#039;)
+    .select(&#039;*&#039;)
+    .eq(&#039;id&#039;, req.params.id)
+    .single();
+
+  if (!product) {
+    return res.status(404).render(&#039;error&#039;, { message: &#039;ไม่พบสินค้า&#039; });
+  }
+
+  const { data: categories, error } = await supabase
+    .from(&#039;categories&#039;)
+    .select(&#039;*&#039;);
+
+  if (error) {
+    console.error(error);
+  }
+
+  res.render(&#039;product_form&#039;, {
+    product,
+    categories: categories || [], // ✅ แก้ตรงนี้
+    mode: &#039;edit&#039;
+  });
+});
+
+
+// GET Add form
+router.get(&#039;/add&#039;, requireLogin, async (req, res) =&gt; {
+  const { data: categories, error } = await supabase
+    .from(&#039;categories&#039;)
+    .select(&#039;*&#039;);
+
+  if (error) {
+    console.error(error);
+  }
+
+  res.render(&#039;product_form&#039;, {
+    product: null,
+    categories: categories || [], // ✅ แก้ตรงนี้
+    mode: &#039;add&#039;
+  });
+});
+
+module.exports = router;</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ cyclomatic }} <br>
+    Length : {{ halstead.length }} <br>
+    Difficulty : {{ halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

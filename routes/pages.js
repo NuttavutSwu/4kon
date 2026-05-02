@@ -101,7 +101,7 @@ router.get('/register', (req, res) => {
 });
 
 router.get('/forgot-password', (req, res) => {
-  res.render('forgot_password', { sent: false });
+  res.render('forgot-password', { sent: false });
 });
 
 module.exports = router;

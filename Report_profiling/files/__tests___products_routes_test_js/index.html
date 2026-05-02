@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - __tests__/products.routes.test.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>__tests__/products.routes.test.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">66.41</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">419</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">55.53</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">6.09</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">const express = require(&#039;express&#039;);
+const request = require(&#039;supertest&#039;);
+
+jest.mock(&#039;../utils/supabase&#039;, () =&gt; {
+  const state = {
+    insertError: null,
+    updateError: null,
+    deleteError: null
+  };
+  const tables = {
+    products: [],
+    categories: []
+  };
+
+  const insert = jest.fn(async (rows) =&gt; {
+    const list = Array.isArray(rows) ? rows : [rows];
+    list.forEach((row) =&gt; tables.__active.push(row));
+    return { error: null };
+  });
+
+  const update = jest.fn(async () =&gt; ({ error: null }));
+  const del = jest.fn(async () =&gt; ({ error: null }));
+
+  function makeQuery(tableName) {
+    const filters = [];
+    let selected = &#039;*&#039;;
+
+    const query = {
+      select: jest.fn((fields = &#039;*&#039;) =&gt; {
+        selected = fields;
+        return query;
+      }),
+      eq: jest.fn((field, value) =&gt; {
+        filters.push({ field, value });
+        return query;
+      }),
+      single: jest.fn(async () =&gt; {
+        let data = (tables[tableName] || []).slice();
+        for (const f of filters) data = data.filter((row) =&gt; row[f.field] === f.value);
+        return { data: data[0] || null, error: null };
+      }),
+      insert: jest.fn(async (rows) =&gt; {
+        if (state.insertError &amp;&amp; tableName === &#039;products&#039;) return { error: state.insertError };
+        const list = Array.isArray(rows) ? rows : [rows];
+        list.forEach((row) =&gt; tables[tableName].push(row));
+        return { error: null };
+      }),
+      update: jest.fn(() =&gt; ({
+        eq: jest.fn(async () =&gt; ({ error: state.updateError }))
+      })),
+      delete: jest.fn(() =&gt; ({
+        eq: jest.fn(async () =&gt; ({ error: state.deleteError }))
+      }))
+    };
+
+    query.then = (resolve, reject) =&gt; {
+      try {
+        let data = (tables[tableName] || []).slice();
+        for (const f of filters) data = data.filter((row) =&gt; row[f.field] === f.value);
+        if (selected !== &#039;*&#039; &amp;&amp; typeof selected === &#039;string&#039;) {
+          const fields = selected.split(&#039;,&#039;).map((s) =&gt; s.trim()).filter(Boolean);
+          data = data.map((row) =&gt; {
+            const slim = {};
+            fields.forEach((k) =&gt; { slim[k] = row[k]; });
+            return slim;
+          });
+        }
+        return Promise.resolve(resolve({ data, error: null }));
+      } catch (err) {
+        if (reject) return Promise.resolve(reject(err));
+        throw err;
+      }
+    };
+
+    return query;
+  }
+
+  return {
+    __state: state,
+    __tables: tables,
+    from: jest.fn((table) =&gt; makeQuery(table))
+  };
+});
+
+const supabase = require(&#039;../utils/supabase&#039;);
+const productsRouter = require(&#039;../routes/products&#039;);
+
+function makeApp() {
+  const app = express();
+  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json());
+
+  // Fake session for tests. If header not present, session is empty.
+  app.use((req, _res, next) =&gt; {
+    const raw = req.get(&#039;x-test-user&#039;);
+    req.session = raw ? { user: JSON.parse(raw) } : {};
+    next();
+  });
+
+  // Prevent EJS rendering from crashing tests if a route calls res.render.
+  app.use((req, res, next) =&gt; {
+    res.render = (_view, locals) =&gt; res.status(res.statusCode || 200).json(locals || {});
+    next();
+  });
+
+  app.use(&#039;/products&#039;, productsRouter);
+  return app;
+}
+
+describe(&#039;routes/products&#039;, () =&gt; {
+  beforeEach(() =&gt; {
+    jest.clearAllMocks();
+    supabase.__state.insertError = null;
+    supabase.__state.updateError = null;
+    supabase.__state.deleteError = null;
+    supabase.__tables.products.length = 0;
+    supabase.__tables.categories.length = 0;
+  });
+
+  test(&#039;POST /products/add redirects to login when not logged in&#039;, async () =&gt; {
+    const app = makeApp();
+
+    const res = await request(app)
+      .post(&#039;/products/add&#039;)
+      .type(&#039;form&#039;)
+      .send({ name: &#039;x&#039;, price: &#039;10&#039; });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(&#039;/login?redirect=&#039; + encodeURIComponent(&#039;/products/add&#039;));
+  });
+
+  test(&#039;POST /products/add redirects with error when missing fields&#039;, async () =&gt; {
+    const app = makeApp();
+
+    const res = await request(app)
+      .post(&#039;/products/add&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }))
+      .type(&#039;form&#039;)
+      .send({ name: &#039;&#039;, price: &#039;&#039; });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(&#039;/wishlist?error=missing&#039;);
+  });
+
+  test(&#039;POST /products/add inserts product and redirects to /product/:id&#039;, async () =&gt; {
+    const app = makeApp();
+
+    const res = await request(app)
+      .post(&#039;/products/add&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }))
+      .type(&#039;form&#039;)
+      .send({
+        name: &#039;Phone&#039;,
+        price: &#039;123&#039;,
+        platform: &#039;shopee&#039;,
+        category: &#039;tech, gadget, tech&#039;,
+        link: &#039; https://example.com &#039;,
+        description: &#039; hello &#039;,
+        imgUrl: &#039; https://img &#039;,
+        isPromo: &#039;on&#039;
+      });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toMatch(/^\/product\//);
+    expect(supabase.from).toHaveBeenCalledWith(&#039;products&#039;);
+
+    expect(supabase.__tables.products).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: &#039;Phone&#039;,
+          price: 123,
+          platform: &#039;shopee&#039;,
+          category: &#039;tech,gadget&#039;,
+          link: &#039;https://example.com&#039;,
+          description: &#039;hello&#039;,
+          imgUrl: &#039;https://img&#039;,
+          isPromo: true,
+          createdBy: &#039;u1&#039;
+        })
+      ])
+    );
+  });
+
+  test(&#039;POST /products/add returns 500 when insert fails&#039;, async () =&gt; {
+    supabase.__state.insertError = { message: &#039;insert fail&#039; };
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/products/add&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }))
+      .type(&#039;form&#039;)
+      .send({ name: &#039;Phone&#039;, price: &#039;123&#039; });
+
+    expect(res.status).toBe(500);
+    expect(res.text).toContain(&#039;Error adding product&#039;);
+  });
+
+  test(&#039;POST /products/add with admin role succeeds without createdBy category filter&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/products/add&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;admin-id&#039;, role: &#039;admin&#039; }))
+      .type(&#039;form&#039;)
+      .send({ name: &#039;Admin Item&#039;, price: &#039;50&#039;, category: &#039;global&#039; });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toMatch(/^\/product\//);
+  });
+
+  test(&#039;POST /products/add handles empty tags path&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/products/add&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }))
+      .type(&#039;form&#039;)
+      .send({ name: &#039;NoTag&#039;, price: &#039;10&#039;, category: &#039;&#039; });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toMatch(/^\/product\//);
+  });
+
+  test(&#039;GET /products/add renders product_form with tagSuggestions from all categories&#039;, async () =&gt; {
+    supabase.__tables.categories.push(
+      { id: &#039;c1&#039;, name: &#039;aa&#039;, createdBy: &#039;u1&#039; },
+      { id: &#039;c2&#039;, name: &#039;cc&#039;, createdBy: &#039;u2&#039; }
+    );
+    supabase.__tables.products.push(
+      { id: &#039;p1&#039;, createdBy: &#039;u1&#039;, category: &#039;mobile,aa&#039; }
+    );
+
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/products/add&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.mode).toBe(&#039;add&#039;);
+    expect(res.body.tagSuggestions).toEqual(expect.arrayContaining([&#039;aa&#039;, &#039;cc&#039;]));
+  });
+
+  test(&#039;GET /products/edit/:id renders 404 when product missing&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/products/edit/p404&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(404);
+  });
+
+  test(&#039;POST /products/delete/:id returns 404 when product missing&#039;, async () =&gt; {
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/products/delete/p404&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(404);
+  });
+
+  test(&#039;POST /products/edit/:id updates product and redirects&#039;, async () =&gt; {
+    supabase.__tables.products.push({
+      id: &#039;p1&#039;,
+      name: &#039;Old&#039;,
+      price: 100,
+      platform: &#039;other&#039;,
+      category: &#039;aa&#039;,
+      createdBy: &#039;u1&#039;
+    });
+
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/products/edit/p1&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }))
+      .type(&#039;form&#039;)
+      .send({
+        name: &#039;New Name&#039;,
+        price: &#039;200&#039;,
+        platform: &#039;lazada&#039;,
+        category: &#039;aa,bb&#039;,
+        link: &#039; https://example.com/new &#039;,
+        description: &#039; desc &#039;,
+        imgUrl: &#039; https://img/new &#039;,
+        isPromo: &#039;on&#039;
+      });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(&#039;/product/p1&#039;);
+  });
+
+  test(&#039;POST /products/edit/:id returns 500 when update fails&#039;, async () =&gt; {
+    supabase.__state.updateError = { message: &#039;update fail&#039; };
+    supabase.__tables.products.push({ id: &#039;p1&#039;, name: &#039;x&#039;, price: 1, createdBy: &#039;u1&#039;, category: &#039;aa&#039; });
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/products/edit/p1&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }))
+      .type(&#039;form&#039;)
+      .send({ name: &#039;New&#039;, price: &#039;2&#039;, category: &#039;aa&#039; });
+
+    expect(res.status).toBe(500);
+    expect(res.text).toContain(&#039;Error updating product&#039;);
+  });
+
+  test(&#039;POST /products/edit/:id supports admin role edit path&#039;, async () =&gt; {
+    supabase.__tables.products.push({ id: &#039;p5&#039;, name: &#039;x&#039;, price: 1, createdBy: &#039;u2&#039;, category: &#039;aa&#039; });
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/products/edit/p5&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;admin-id&#039;, role: &#039;admin&#039; }))
+      .type(&#039;form&#039;)
+      .send({ name: &#039;AdminEdit&#039;, price: &#039;2&#039;, category: &#039;aa&#039; });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(&#039;/product/p5&#039;);
+  });
+
+  test(&#039;POST /products/edit/:id with empty tags still updates&#039;, async () =&gt; {
+    supabase.__tables.products.push({ id: &#039;p6&#039;, name: &#039;x&#039;, price: 1, createdBy: &#039;u1&#039;, category: &#039;aa&#039; });
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/products/edit/p6&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }))
+      .type(&#039;form&#039;)
+      .send({ name: &#039;NoTags&#039;, price: &#039;3&#039;, category: &#039;&#039; });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(&#039;/product/p6&#039;);
+  });
+
+  test(&#039;POST /products/delete/:id redirects to referer when success&#039;, async () =&gt; {
+    supabase.__tables.products.push({
+      id: &#039;p2&#039;,
+      name: &#039;Item&#039;,
+      price: 20,
+      createdBy: &#039;u1&#039;,
+      category: &#039;aa&#039;
+    });
+
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/products/delete/p2&#039;)
+      .set(&#039;referer&#039;, &#039;/admin/products&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(&#039;/admin/products&#039;);
+  });
+
+  test(&#039;POST /products/delete/:id redirects to from query when provided&#039;, async () =&gt; {
+    supabase.__tables.products.push({ id: &#039;p10&#039;, name: &#039;Item&#039;, price: 20, createdBy: &#039;u1&#039;, category: &#039;aa&#039; });
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/products/delete/p10?from=%2Fadmin%2Fproducts%3Fpage%3D2&#039;)
+      .set(&#039;referer&#039;, &#039;/wishlist&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(&#039;/admin/products?page=2&#039;);
+  });
+
+  test(&#039;POST /products/delete/:id returns 500 when delete fails&#039;, async () =&gt; {
+    supabase.__state.deleteError = { message: &#039;delete fail&#039; };
+    supabase.__tables.products.push({ id: &#039;p2&#039;, name: &#039;Item&#039;, price: 20, createdBy: &#039;u1&#039;, category: &#039;aa&#039; });
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/products/delete/p2&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(500);
+    expect(res.text).toContain(&#039;Error deleting product&#039;);
+  });
+
+  test(&#039;GET /products/edit/:id renders edit form when product exists&#039;, async () =&gt; {
+    supabase.__tables.products.push({
+      id: &#039;p3&#039;,
+      name: &#039;Edit me&#039;,
+      price: 50,
+      createdBy: &#039;u1&#039;,
+      category: &#039;aa,bb&#039;,
+      platform: &#039;other&#039;
+    });
+    supabase.__tables.categories.push(
+      { id: &#039;c1&#039;, name: &#039;aa&#039;, createdBy: &#039;u1&#039; },
+      { id: &#039;c2&#039;, name: &#039;global-tag&#039;, createdBy: &#039;u2&#039; }
+    );
+
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/products/edit/p3&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;u1&#039;, role: &#039;user&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.mode).toBe(&#039;edit&#039;);
+    expect(res.body.product).toEqual(expect.objectContaining({ id: &#039;p3&#039; }));
+    expect(res.body.tagSuggestions).toEqual(expect.arrayContaining([&#039;aa&#039;, &#039;global-tag&#039;]));
+  });
+
+  test(&#039;GET /products/add works for admin path&#039;, async () =&gt; {
+    supabase.__tables.categories.push({ id: &#039;c9&#039;, name: &#039;admin-cat&#039;, createdBy: &#039;u2&#039; });
+    const app = makeApp();
+    const res = await request(app)
+      .get(&#039;/products/add&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;admin-id&#039;, role: &#039;admin&#039; }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.mode).toBe(&#039;add&#039;);
+    expect(res.body.tagSuggestions).toEqual(expect.arrayContaining([&#039;admin-cat&#039;]));
+  });
+
+  test(&#039;POST /products/delete/:id supports admin role path&#039;, async () =&gt; {
+    supabase.__tables.products.push({ id: &#039;p9&#039;, name: &#039;admin item&#039;, price: 10, createdBy: &#039;u2&#039;, category: &#039;aa&#039; });
+    const app = makeApp();
+    const res = await request(app)
+      .post(&#039;/products/delete/p9&#039;)
+      .set(&#039;referer&#039;, &#039;/admin/products&#039;)
+      .set(&#039;x-test-user&#039;, JSON.stringify({ id: &#039;admin-id&#039;, role: &#039;admin&#039; }));
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(&#039;/admin/products&#039;);
+  });
+});</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ cyclomatic }} <br>
+    Length : {{ halstead.length }} <br>
+    Difficulty : {{ halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>
