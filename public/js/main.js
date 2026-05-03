@@ -40,7 +40,7 @@ document.addEventListener('submit', (e) => {
 
 // ===== FAVORITES =====
 function getWishlistUserId() {
-  return document.body?.dataset?.userId || 'guest';
+  return (document.body && document.body.dataset && document.body.dataset.userId) || 'guest';
 }
 
 function getFavoriteStorageKey() {
@@ -239,7 +239,7 @@ async function handleAuth() {
   const isLoginPage = path === '/login';
   const urlParams = new URLSearchParams(window.location.search);
   const oauthCode = urlParams.get('code');
-  const hasServerSession = document.body?.dataset?.hasSessionUser === 'true';
+  const hasServerSession = document.body && document.body.dataset && document.body.dataset.hasSessionUser === 'true';
   const loginRedirectTarget = (() => {
     const candidate = urlParams.get('redirect');
     return candidate && candidate.startsWith('/') ? candidate : '/';
@@ -292,7 +292,7 @@ async function handleAuth() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: user.email,
-          name: user.user_metadata?.name
+          name: user.user_metadata && user.user_metadata.name
         })
       });
 
@@ -333,7 +333,7 @@ async function handleAuth() {
 document.addEventListener('DOMContentLoaded', () => {
   if (window.location.pathname === '/wishlist') {
     const navEntries = performance.getEntriesByType ? performance.getEntriesByType('navigation') : [];
-    const navType = navEntries[0]?.type;
+    const navType = navEntries[0] && navEntries[0].type;
     if (navType === 'reload' && window.location.search) {
       window.location.replace('/wishlist');
       return;

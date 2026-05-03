@@ -55,7 +55,7 @@ router.get('/', requireAdmin, async (req, res) => {
   const maxPlatform = Math.max(shopeeCount, lazadaCount, otherCount) || 1;
 
   const topProduct = safeProducts.reduce((best, p) =>
-    Number(p.price) > Number(best?.price || 0) ? p : best, null);
+    Number(p.price) > Number((best && best.price) || 0) ? p : best, null);
 
   const cheapProduct = safeProducts.length
     ? safeProducts.reduce((low, p) => Number(p.price) < Number(low.price) ? p : low)

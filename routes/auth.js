@@ -81,7 +81,7 @@ router.post('/admin-login', async (req, res) => {
       .maybeSingle();
 
     if (byUsernameError) throw byUsernameError;
-    if (byUsername?.id) {
+    if (byUsername && byUsername.id) {
       adminId = byUsername.id;
     } else {
       // Fallback to our dedicated system user id (may already exist).
@@ -92,7 +92,7 @@ router.post('/admin-login', async (req, res) => {
         .maybeSingle();
 
       if (byFixedIdError) throw byFixedIdError;
-      if (byFixedId?.id) {
+      if (byFixedId && byFixedId.id) {
         adminId = byFixedId.id;
       } else {
         // Last resort: attempt to create a dedicated system user.
@@ -156,7 +156,7 @@ router.get('/google', async (req, res) => {
       }
     });
 
-    if (error || !data?.url) {
+    if (error || !data || !data.url) {
       throw error || new Error('Missing Google OAuth URL');
     }
 
@@ -183,14 +183,14 @@ router.post('/sync-user', async (req, res) => {
 
     const { data: users } = await supabase.from('users').select('*');
 
-    let existingUser = users?.find(
+    let existingUser = Array.isArray(users) ? users.find(
       u => (u.email || '').toLowerCase() === email.toLowerCase()
-    );
+    ) : undefined;
 
     if (!existingUser) {
       const baseUsername = name || email.split('@')[0];
 
-      const username = users?.some(u => u.username === baseUsername)
+      const username = Array.isArray(users) && users.some(u => u.username === baseUsername)
         ? `${baseUsername}${Date.now().toString().slice(-4)}`
         : baseUsername;
 

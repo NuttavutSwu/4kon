@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node app.js",
     "test": "jest",
-    "report": "plato -r -d report -x \"node_modules|report|coverage|doc\" \"**/*.js\""
+    "report": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/plato-report.ps1"
   },
   "repository": {
     "type": "git",

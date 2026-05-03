@@ -228,7 +228,7 @@ router.get('/login', (req, res) => {
 });
 
 router.get('/admin-login', (req, res) => {
-  if (req.session.user?.role === 'admin') return res.redirect('/admin');
+  if (req.session.user && req.session.user.role === 'admin') return res.redirect('/admin');
   res.render('admin-login', { error: null });
 });
 
