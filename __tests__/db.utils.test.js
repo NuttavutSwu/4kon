@@ -1,71 +1,147 @@
-const express = require('express');
-const request = require('supertest');
+function createSupabaseMock(behavior) {
+  const chain = {
+    select: jest.fn(async () => behavior.insertSelectResult),
+    update: jest.fn(() => chain),
+    delete: jest.fn(() => chain),
+    eq: jest.fn(async () => behavior.eqResult)
+  };
 
-// Test db utilities through actual routes that use them
-// The db.js utility module relies on supabase - we'll test the routes that use it
+  const tables = {};
 
-// Create a chainable mock that supports insert().select() pattern
-// Use mockChainable prefix to allow referencing in jest.mock factory
-function mockChainable() {
   return {
-    select: jest.fn().mockResolvedValue({ data: [], error: null }),
-    insert: jest.fn(() => mockChainable()),
-    update: jest.fn(() => mockChainable()),
-    delete: jest.fn(() => mockChainable()),
-    eq: jest.fn(() => mockChainable())
+    tables,
+    from: jest.fn((table) => {
+      if (!tables[table]) {
+        tables[table] = {
+          select: jest.fn(async () => behavior.selectResult),
+          insert: jest.fn(() => chain),
+          update: jest.fn(() => chain),
+          delete: jest.fn(() => chain),
+          eq: jest.fn(() => chain)
+        };
+      }
+      return tables[table];
+    })
   };
 }
 
-jest.mock('../utils/supabase', () => ({
-  from: jest.fn(() => mockChainable())
-}));
-
-const pagesRouter = require('../routes/pages');
-
-function makeApp() {
-  const app = express();
-  app.use(express.urlencoded({ extended: true }));
-  app.use((req, _res, next) => {
-    req.session = {};
-    next();
-  });
-  app.use((req, res, next) => {
-    res.render = (view, locals) => res.status(200).json({ view, ...locals });
-    next();
-  });
-  app.use('/', pagesRouter);
-  return app;
+async function loadDbWithBehavior(behavior) {
+  jest.resetModules();
+  const supabaseMock = createSupabaseMock(behavior);
+  jest.doMock('../utils/supabase', () => supabaseMock);
+  const db = require('../utils/db');
+  await new Promise((resolve) => setImmediate(resolve));
+  return { db, supabaseMock };
 }
 
-describe('utils/db functions via routes', () => {
-  test('GET /home uses db.read(products)', async () => {
-    const app = makeApp();
-    const res = await request(app).get('/');
-    expect(res.status).toBe(200);
+describe('utils/db', () => {
+  let consoleError;
+  let consoleLog;
+
+  beforeEach(() => {
+    consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleLog = jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
-  test('GET /wishlist uses db.read(products) and db.read(categories)', async () => {
-    const app = makeApp();
-    const res = await request(app).get('/wishlist');
-    expect(res.status).toBe(200);
+  afterEach(() => {
+    consoleError.mockRestore();
+    consoleLog.mockRestore();
+    jest.dontMock('../utils/supabase');
   });
 
-  test('GET /about does not need db', async () => {
-    const app = makeApp();
-    const res = await request(app).get('/about');
-    expect(res.status).toBe(200);
+  test('read returns rows on success', async () => {
+    const { db } = await loadDbWithBehavior({
+      selectResult: { data: [{ id: 'p1' }], error: null },
+      insertSelectResult: { data: [], error: null },
+      eqResult: { error: null }
+    });
+
+    await expect(db.read('products')).resolves.toEqual([{ id: 'p1' }]);
   });
 
-  test('GET /login does not need db', async () => {
-    const app = makeApp();
-    const res = await request(app).get('/login');
-    expect(res.status).toBe(200);
+  test('read returns an empty array on error', async () => {
+    const { db } = await loadDbWithBehavior({
+      selectResult: { data: null, error: new Error('read failed') },
+      insertSelectResult: { data: [], error: null },
+      eqResult: { error: null }
+    });
+
+    await expect(db.read('products')).resolves.toEqual([]);
+    expect(consoleError).toHaveBeenCalledWith('READ ERROR:', expect.any(Error));
   });
 
-  test('GET /product/:id returns rendered view (not found returns error view in mock)', async () => {
-    const app = makeApp();
-    const res = await request(app).get('/product/p1');
-    // With empty mock data, it renders error view
-    expect(res.status).toBe(200);
+  test('insert returns success payload on success', async () => {
+    const { db } = await loadDbWithBehavior({
+      selectResult: { data: [], error: null },
+      insertSelectResult: { data: [{ id: 'x1' }], error: null },
+      eqResult: { error: null }
+    });
+
+    await expect(db.insert('products', [{ id: 'x1' }])).resolves.toEqual({
+      success: true,
+      data: [{ id: 'x1' }]
+    });
+  });
+
+  test('insert returns failure payload on error', async () => {
+    const { db } = await loadDbWithBehavior({
+      selectResult: { data: [], error: null },
+      insertSelectResult: { data: null, error: new Error('insert failed') },
+      eqResult: { error: null }
+    });
+
+    await expect(db.insert('products', [{ id: 'x1' }])).resolves.toEqual({
+      success: false,
+      error: expect.any(Error)
+    });
+    expect(consoleError).toHaveBeenCalledWith('INSERT ERROR:', expect.any(Error));
+  });
+
+  test('update logs errors but still resolves', async () => {
+    const { db } = await loadDbWithBehavior({
+      selectResult: { data: [], error: null },
+      insertSelectResult: { data: [], error: null },
+      eqResult: { error: new Error('update failed') }
+    });
+
+    await expect(db.update('products', 'p1', { name: 'Updated' })).resolves.toBeUndefined();
+    expect(consoleError).toHaveBeenCalledWith('UPDATE ERROR:', expect.any(Error));
+  });
+
+  test('remove logs errors but still resolves', async () => {
+    const { db } = await loadDbWithBehavior({
+      selectResult: { data: [], error: null },
+      insertSelectResult: { data: [], error: null },
+      eqResult: { error: new Error('delete failed') }
+    });
+
+    await expect(db.remove('products', 'p1')).resolves.toBeUndefined();
+    expect(consoleError).toHaveBeenCalledWith('DELETE ERROR:', expect.any(Error));
+  });
+
+  test('seed inserts the default admin user when table is empty', async () => {
+    const { supabaseMock } = await loadDbWithBehavior({
+      selectResult: { data: [], error: null },
+      insertSelectResult: { data: [{ id: 'admin' }], error: null },
+      eqResult: { error: null }
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(supabaseMock.from).toHaveBeenCalledWith('users');
+    expect(supabaseMock.tables.users.insert).toHaveBeenCalled();
+  });
+
+  test('seed does not insert when users already exist', async () => {
+    const { supabaseMock } = await loadDbWithBehavior({
+      selectResult: { data: [{ id: 'u1' }], error: null },
+      insertSelectResult: { data: [], error: null },
+      eqResult: { error: null }
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(supabaseMock.from).toHaveBeenCalledWith('users');
+    expect(supabaseMock.tables.users.insert).not.toHaveBeenCalled();
   });
 });
