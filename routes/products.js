@@ -250,12 +250,12 @@ router.get('/edit/:id', requireLogin, async (req, res) => {
   const { data: categories } = await catQuery;
   const { data: globalCategories } = await globalCatQuery;
   const { data: userProducts } = await productCategoriesQuery;
-  const mergedCategories = mergeCategories(categories, userProducts, req.session.user.id);
-  const tagSuggestions = Array.from(new Set(
-    (globalCategories || [])
-      .map((c) => String(c?.name || '').trim())
+    const mergedCategories = mergeCategories(categories, userProducts, req.session.user.id);
+    const tagSuggestions = Array.from(new Set(
+      (globalCategories || [])
+      .map((c) => String((c && c.name) || '').trim())
       .filter(Boolean)
-  )).sort((a, b) => a.localeCompare(b, 'en'));
+    )).sort((a, b) => a.localeCompare(b, 'en'));
 
   res.render('product_form', {
     product,
@@ -283,11 +283,11 @@ router.get('/add', requireLogin, async (req, res) => {
   const { data: globalCategories } = await globalCatQuery;
   const { data: userProducts } = await productCategoriesQuery;
   const mergedCategories = mergeCategories(categories, userProducts, req.session.user.id);
-  const tagSuggestions = Array.from(new Set(
-    (globalCategories || [])
-      .map((c) => String(c?.name || '').trim())
+    const tagSuggestions = Array.from(new Set(
+      (globalCategories || [])
+      .map((c) => String((c && c.name) || '').trim())
       .filter(Boolean)
-  )).sort((a, b) => a.localeCompare(b, 'en'));
+    )).sort((a, b) => a.localeCompare(b, 'en'));
 
   res.render('product_form', {
     product: null,
