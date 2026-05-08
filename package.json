@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node app.js",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "report": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/plato-report.ps1"
   },
   "repository": {
