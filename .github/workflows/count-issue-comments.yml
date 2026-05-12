@@ -1,0 +1,65 @@
+name: Count Issue Comments
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 1'  # ทุกวันจันทร์ 00:00 UTC
+
+jobs:
+  count-comments:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+
+    steps:
+      - name: Count unique issue comments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const seen = new Set();
+            const comments = [];
+            let page = 1;
+
+            // ดึง comment ทุกหน้าจนหมด
+            while (true) {
+              const { data } = await github.rest.issues.listCommentsForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+                page,
+              });
+
+              if (data.length === 0) break;
+
+              for (const c of data) {
+                // ใช้ comment.id (issuecomment-<id>) เป็น unique key
+                if (!seen.has(c.id)) {
+                  seen.add(c.id);
+                  comments.push(c);
+                }
+              }
+
+              page++;
+            }
+
+            core.summary
+              .addHeading(`Issue Comments Summary`, 2)
+              .addRaw(`\n**Total unique comments: ${comments.length}**\n\n`)
+              .addTable([
+                [
+                  { data: 'issuecomment-ID', header: true },
+                  { data: 'Author', header: true },
+                  { data: 'Body (preview)', header: true },
+                  { data: 'Created at', header: true },
+                ],
+                ...comments.map(c => [
+                  String(c.id),
+                  c.user?.login ?? '—',
+                  c.body?.slice(0, 80) ?? '',
+                  c.created_at,
+                ]),
+              ]);
+
+            await core.summary.write();
+
+            core.info(`Unique issue comments: ${comments.length}`);
