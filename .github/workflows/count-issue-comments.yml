@@ -43,8 +43,8 @@ jobs:
             }
 
             core.summary
-              .addHeading(`Issue Comments Summary`, 2)
-              .addRaw(`\n**Total unique comments: ${comments.length}**\n\n`)
+              .addHeading('Issue Comments Summary', 2)
+              .addRaw('\n**Total unique comments: ' + comments.length + '**\n\n')
               .addTable([
                 [
                   { data: 'issuecomment-ID', header: true },
@@ -53,7 +53,7 @@ jobs:
                   { data: 'Created at', header: true },
                 ],
                 ...comments.map(c => [
-                  String(c.id),
+                  'issuecomment-' + c.id,
                   c.user?.login ?? '—',
                   c.body?.slice(0, 80) ?? '',
                   c.created_at,
